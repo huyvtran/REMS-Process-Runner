@@ -62,28 +62,17 @@ public class Program {
      */
     public static void main(String[] args) {
         try {
-
+            Global.macDet = new String[3];
+            Global.macDet[0] = "";
+            Global.macDet[1] = "";
+            Global.macDet[2] = "";
+            System.out.println("Main Thread Started XXX");
             Global.UsrsOrg_ID = 3;
             Global.dataBasDir = "C:\\1_DESIGNS\\MYAPPS\\Enterprise_Management_System\\Enterprise_Management_System\\bin\\Debug\\Images\\test_database";
             Global.rnnrsBasDir = "C:\\1_DESIGNS\\MYAPPS\\Enterprise_Management_System\\Enterprise_Management_System\\bin\\Debug\\bin";
 
-            String pname = ManagementFactory.getRuntimeMXBean().getName();
-            if (pname.contains("@")) {
-                Global.pid = Integer.parseInt(pname.substring(0, pname.lastIndexOf("@")));
-            } else {
-                Global.pid = Thread.currentThread().getId();
-            }
-            Global.HostOSNme = System.getProperty("os.name");
-            System.out.println(Global.pid);
-            System.out.println(Global.HostOSNme);
-
-            String[] macDet = Global.getMachDetails();
-            System.out.println(Arrays.toString(macDet));
             System.out.println(args.length);
-            System.out.println(Arrays.toString(args));
-            Global.errorLog += Global.pid + System.getProperty("line.separator")
-                    + Global.HostOSNme + System.getProperty("line.separator")
-                    + Arrays.toString(Global.getMachDetails()) + System.getProperty("line.separator");
+            System.out.println(Arrays.toString(args).replace(args[3], "**************"));
             //Global.writeToLog();
             if (args.length >= 8) {
                 Global.rnnrsBasDir = StringUtils.strip(args[7], "\"");
@@ -92,6 +81,8 @@ public class Program {
                         + "********************" + System.getProperty("line.separator") + args[4] + System.getProperty("line.separator") + args[5]
                         + System.getProperty("line.separator") + args[6] + System.getProperty("line.separator") + Global.rnnrsBasDir + System.getProperty("line.separator");
 
+                System.out.println(runnerName + ":SPACE_CHECK");
+                //System.out.println(Global.errorLog);
                 if (args.length >= 10) {
                     Global.callngAppType = StringUtils.strip(args[8], "\"");
                     Global.dataBasDir = StringUtils.strip(args[9], "\"");
@@ -101,33 +92,98 @@ public class Program {
                         Global.errorLog += args[10] + System.getProperty("line.separator");
                     }
                 }
-                Global.errorLog += "PID: " + Global.pid + " Running on: " + macDet[0] + " / " + macDet[1] + " / " + macDet[2];
-                Global.writeToLog();
                 Global.runID = Long.valueOf(args[6]);
+                System.out.println(Global.errorLog);
                 do_connection(args[0], args[1], args[2], args[3], args[4]);
                 Global.appStatPath = Global.rnnrsBasDir;
-                //Program.updateRates("2015-07-02");
                 if (Global.runID > 0) {
                     Global.rnUser_ID = Long.valueOf(Global.getGnrlRecNm("rpt.rpt_report_runs", "rpt_run_id", "run_by", Global.runID));
                     Global.UsrsOrg_ID = Global.getUsrOrgID(Global.rnUser_ID);
                 }
-
-                if (!Global.globalSQLConn.isClosed()) {
+                Global.RhoAPIUrlID = Global.getEnbldPssblValID("Rho Email/SMS API Base URL", Global.getLovID("All Other General Setups"));
+                Global.RhoAPIUrl = Global.getEnbldPssblValDesc1(Global.RhoAPIUrlID);
+                if (Global.RhoAPIUrlID <= 0) {
+                    Global.RhoAPIUrl = Global.AppUrl;
+                }
+                boolean isCnClosed = Global.globalSQLConn.isClosed();
+                System.out.println("Connection Status:" + String.valueOf(isCnClosed));
+                if (!isCnClosed) {
                     Global.globalSQLConn.close();
+                    String rnnPryty = Global.getGnrlRecNm("rpt.rpt_prcss_rnnrs", "rnnr_name", "crnt_rnng_priority", Program.runnerName);
+                    if (!Program.runnerName.equals("REQUESTS LISTENER PROGRAM-JAVA")) {
+
+                        //Thread for running the actual Code behind the Request Run if this is the
+                        //Program supposed to run that request
+                        //i.e. if Global.runID >0
+                        if (Global.runID > 0) {
+                            thread1 = new RqstLstnrUpdtrfunc("ThreadOne");
+                            thread1.setDaemon(true);
+                            thread1.setName("ThreadOne");
+                            thread1.setPriority(Thread.MIN_PRIORITY);
+                            //System.out.println("Starting ThreadOne thread...");
+                            thread1.start();
+
+                            thread5 = new RunActualRqtsfunc("ThreadFive");
+                            thread5.setDaemon(true);
+                            thread5.setName("ThreadFive");
+                            //System.out.println("Starting ThreadFive thread...");
+                            switch (rnnPryty) {
+                                case "1-Highest":
+                                    thread1.setPriority(Thread.MAX_PRIORITY);
+                                    break;
+                                case "2-AboveNormal":
+                                    thread1.setPriority(7);
+                                    break;
+                                case "3-Normal":
+                                    thread1.setPriority(Thread.NORM_PRIORITY);
+                                    break;
+                                case "4-BelowNormal":
+                                    thread1.setPriority(3);
+                                    break;
+                                default:
+                                    thread1.setPriority(1);
+                                    break;
+                            }
+                            thread5.start();
+                        }
+                        Global.minimizeMemory();
+                        // Allow counting for 10 seconds.
+                        //Thread.Sleep(1000);
+                    }
+
+                    String pname = ManagementFactory.getRuntimeMXBean().getName();
+                    if (pname.contains("@")) {
+                        Global.pid = Integer.parseInt(pname.substring(0, pname.lastIndexOf("@")));
+                    } else {
+                        Global.pid = Thread.currentThread().getId();
+                    }
+                    Global.HostOSNme = System.getProperty("os.name");
+                    System.out.println(Global.pid);
+                    System.out.println(Global.HostOSNme);
+
+                    Global.macDet = Global.getMachDetails();
+                    System.out.println(Arrays.toString(Global.macDet));
+                    Global.errorLog += Global.pid + System.getProperty("line.separator")
+                            + Global.HostOSNme + System.getProperty("line.separator")
+                            + Arrays.toString(Global.macDet) + System.getProperty("line.separator");
                     boolean isLstnrRnng = false;
-                    if (Program.runnerName.equals("REQUESTS LISTENER PROGRAM")) {
-                        int isIPAllwd = Global.getEnbldPssblValID(macDet[2],
+                    System.out.println("New Connection Status:" + String.valueOf(!Global.globalSQLConn.isClosed()));
+                    Global.errorLog += "PID: " + Global.pid + " Running on: " + Global.macDet[0] + " / " + Global.macDet[1] + " / " + Global.macDet[2];
+                    Global.writeToLog();
+                    if (Program.runnerName.equals("REQUESTS LISTENER PROGRAM-JAVA")) {
+                        int isIPAllwd = Global.getEnbldPssblValID(Global.macDet[2],
                                 Global.getEnbldLovID("Allowed IP Address for Request Listener"));
                         int isDBAllwd = Global.getEnbldPssblValID(Global.Dbase,
                                 Global.getEnbldLovID("Allowed DB Name for Request Listener"));
+                        System.out.println("IS IP Allowed:" + String.valueOf(isIPAllwd) + ":IS DB Allowed:" + String.valueOf(isDBAllwd));
                         if (isIPAllwd <= 0 || isDBAllwd <= 0) {
                             Program.killThreads();
                             Thread.currentThread().interrupt();
-                            //Program.killThreads();
                             return;
                         }
 
                         isLstnrRnng = Global.isRunnrRnng(Program.runnerName);
+                        System.out.println("IS LISTERNER RUNNING ALREADY:" + String.valueOf(isLstnrRnng));
                         if (isLstnrRnng == true) {
                             Program.killThreads();
                             Thread.currentThread().interrupt();
@@ -136,10 +192,10 @@ public class Program {
                         }
                     }
                     Global.errorLog = "Successfully Connected to Database\r\n" + String.valueOf(isLstnrRnng) + System.getProperty("line.separator");
+                    System.out.println("Successfully Connected to Database! Running Status:" + String.valueOf(isLstnrRnng) + " Runner Name:" + Program.runnerName);
                     Global.writeToLog();
-                    String rnnPryty = Global.getGnrlRecNm("rpt.rpt_prcss_rnnrs", "rnnr_name", "crnt_rnng_priority", Program.runnerName);
 
-                    if (isLstnrRnng == false && Program.runnerName.equals("REQUESTS LISTENER PROGRAM")) {
+                    if (isLstnrRnng == false && Program.runnerName.equals("REQUESTS LISTENER PROGRAM-JAVA")) {
                         Global.updatePrcsRnnrCmd(Program.runnerName, "0", -1);
                         thread1 = new RqstLstnrUpdtrfunc("ThreadOne");
                         thread1.setDaemon(true);
@@ -148,7 +204,7 @@ public class Program {
                         //System.out.println("Starting ThreadOne thread...");
                         thread1.start();
                         Global.minimizeMemory();
-                        if (Program.runnerName.equals("REQUESTS LISTENER PROGRAM")) {
+                        if (Program.runnerName.equals("REQUESTS LISTENER PROGRAM-JAVA")) {
                             //Thread for Generating Run Requests for Scheduled Programs/Reports
                             thread2 = new GnrtSchldRnsfunc("ThreadTwo");
                             thread2.setDaemon(true);
@@ -176,6 +232,7 @@ public class Program {
 
                             //Thread for Monitoring User Request Runs that are due but not running
                             // and starting their appropriate process runners
+                            thread4 = new MntrUsrInitRqtsNtRnngfunc("ThreadFour");
                             thread4.setDaemon(true);
                             thread4.setName("ThreadFour");
                             thread4.setPriority(Thread.MIN_PRIORITY);
@@ -198,43 +255,13 @@ public class Program {
                             //System.out.println("Starting ThreadEight thread...");
                             thread8.start();
                         }
-                    } else {
-                        //Thread for running the actual Code behind the Request Run if this is the
-                        //Program supposed to run that request
-                        //i.e. if Global.runID >0
-                        Global.minimizeMemory();
-                        if (Global.runID > 0) {
-                            thread1 = new RqstLstnrUpdtrfunc("ThreadOne");
-                            thread1.setDaemon(true);
-                            thread1.setName("ThreadOne");
-                            thread1.setPriority(Thread.MIN_PRIORITY);
-                            //System.out.println("Starting ThreadOne thread...");
-                            thread1.start();
-
-                            thread5 = new RunActualRqtsfunc("ThreadFive");
-                            thread5.setDaemon(true);
-                            thread5.setName("ThreadFive");
-                            //System.out.println("Starting ThreadFive thread...");
-                            if (rnnPryty.equals("1-Highest")) {
-                                thread1.setPriority(Thread.MAX_PRIORITY);
-                            } else if (rnnPryty.equals("2-AboveNormal")) {
-                                thread1.setPriority(7);
-                            } else if (rnnPryty.equals("3-Normal")) {
-                                thread1.setPriority(Thread.NORM_PRIORITY);
-                            } else if (rnnPryty.equals("4-BelowNormal")) {
-                                thread1.setPriority(3);
-                            } else {
-                                thread1.setPriority(1);
-                            }
-                            thread5.start();
-                        }
-                        // Allow counting for 10 seconds.
-                        //Thread.Sleep(1000);
                     }
+
                 }
             }
         } catch (NumberFormatException ex) {
             Global.errorLog = ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            System.out.println(Global.errorLog);
             String fileLoc = Global.rnnrsBasDir + "/log_files/";
             Date dNow = new Date();
             SimpleDateFormat ft = new SimpleDateFormat("ddMMMyyyyHHmmss");
@@ -252,6 +279,25 @@ public class Program {
             killThreads();
         } catch (SQLException ex) {
             Global.errorLog = ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            System.out.println(Global.errorLog);
+            String fileLoc = Global.rnnrsBasDir + "/log_files/";
+            Date dNow = new Date();
+            SimpleDateFormat ft = new SimpleDateFormat("ddMMMyyyyHHmmss");
+            fileLoc += "Global.errorLog" + ft.format(dNow.getTime()) + ".rho";
+            PrintWriter fileWriter;
+            try {
+                fileWriter = new PrintWriter(fileLoc, "UTF-8");
+                fileWriter.println(Global.errorLog);
+                fileWriter.close();
+            } catch (FileNotFoundException ex1) {
+                Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+            } catch (UnsupportedEncodingException ex1) {
+                Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+            }
+            killThreads();
+        } catch (Exception ex) {
+            Global.errorLog = ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            System.out.println(Global.errorLog);
             String fileLoc = Global.rnnrsBasDir + "/log_files/";
             Date dNow = new Date();
             SimpleDateFormat ft = new SimpleDateFormat("ddMMMyyyyHHmmss");
@@ -342,10 +388,17 @@ public class Program {
             }
         } catch (ClassNotFoundException ex) {
             Global.errorLog = ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             killThreads();
         } catch (SQLException ex) {
             Global.errorLog = ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n";
+            System.out.println(Global.errorLog);
+            Global.writeToLog();
+            killThreads();
+        } catch (Exception ex) {
+            Global.errorLog = ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             killThreads();
         } finally {
@@ -368,10 +421,7 @@ public class Program {
     }
 
     static void updatePrgrm(long prgmID) {
-        Global.minimizeMemory();
-
         String shdRnnrStop = Global.getGnrlRecNm("rpt.rpt_prcss_rnnrs", "rnnr_name", "shld_rnnr_stop", Program.runnerName);
-
         String shdRnIDStop = "0";
         int rnnrStatusPcnt = 0;
         if (Global.runID > 0) {
@@ -391,15 +441,11 @@ public class Program {
             killThreads();
             return;
         }
-
         if (prgmID > 0) {
             try {
                 String dtestr = Global.getDB_Date_time();
-                String[] macDet = Global.getMachDetails();
-                //String hndle = System.Diagnostics.Process.GetCurrentProcess().HandlString.valueOf(e);
-                //"Handle: " + hndle +
-                Thread.sleep(2000);
-                Global.updatePrcsRnnr(prgmID, dtestr, "PID: " + Global.pid + " Running on: " + macDet[0] + " / " + macDet[1] + " / " + macDet[2]);
+                Thread.sleep(500);
+                Global.updatePrcsRnnr(prgmID, dtestr, "PID: " + Global.pid + " Running on: " + Global.macDet[0] + " / " + Global.macDet[1] + " / " + Global.macDet[2]);
                 if (Global.runID > 0) {
                     Global.updateRptRnActvTme(Global.runID, dtestr);
                 }
@@ -410,11 +456,13 @@ public class Program {
     }
 
     static void killThreads() {
-        try {
+        System.out.println("Request to Kill Threads Initiated");
+        /*try {
             Thread.sleep(5000);
         } catch (InterruptedException ex) {
             Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
+        }*/
         try {
             Global.mustStop = true;
             Global.minimizeMemory();
@@ -450,35 +498,63 @@ public class Program {
             } else if (SystemUtils.IS_OS_WINDOWS) {
                 Process rt = Runtime.getRuntime().exec("taskkill /F /PID " + String.valueOf(Global.pid));
             }
+            System.exit(0);
+            Runtime.getRuntime().exit(0);
+        } catch (IOException ex) {
+            if (SystemUtils.IS_OS_LINUX) {
+                try {
+                    Process rt = Runtime.getRuntime().exec("kill -9 " + String.valueOf(Global.pid));
+                } catch (IOException ex1) {
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+                }
+            } else if (SystemUtils.IS_OS_WINDOWS) {
+                try {
+                    Process rt = Runtime.getRuntime().exec("taskkill /F /PID " + String.valueOf(Global.pid));
+                } catch (IOException ex1) {
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+                }
+            }
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
+            System.exit(0);
+            Runtime.getRuntime().exit(0);
         } catch (Exception ex) {
             if (SystemUtils.IS_OS_LINUX) {
                 try {
                     Process rt = Runtime.getRuntime().exec("kill -9 " + String.valueOf(Global.pid));
                 } catch (IOException ex1) {
-                    Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
                 }
             } else if (SystemUtils.IS_OS_WINDOWS) {
                 try {
                     Process rt = Runtime.getRuntime().exec("taskkill /F /PID " + String.valueOf(Global.pid));
                 } catch (IOException ex1) {
-                    Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex1);
                 }
             }
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
+            System.exit(0);
+            Runtime.getRuntime().exit(0);
         } finally {
             if (SystemUtils.IS_OS_LINUX) {
                 try {
                     Process rt = Runtime.getRuntime().exec("kill -9 " + String.valueOf(Global.pid));
                 } catch (IOException ex) {
-                    Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex);
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
                 }
             } else if (SystemUtils.IS_OS_WINDOWS) {
                 try {
                     Process rt = Runtime.getRuntime().exec("taskkill /F /PID " + String.valueOf(Global.pid));
                 } catch (IOException ex) {
-                    Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex);
+                    //Logger.getLogger(Program.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
                 }
             }
+            System.exit(0);
+            Runtime.getRuntime().exit(0);
         }
+        System.exit(0);
+        Runtime.getRuntime().exit(0);
     }
 
     private static String[] breakDownStr(String inStr, int maxWidth, int maxHeight, Graphics g, float mxTxtWdth) {
@@ -776,7 +852,7 @@ public class Program {
             SimpleDateFormat frmtr = new SimpleDateFormat("dd-MMM-yyyy");
             SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd");
 
-            Global.updtActnPrcss(5);
+            //Global.updtActnPrcss(5);
             batchStatus = Global.getGnrlRecNm("accb.accb_trnsctn_batches",
                     "batch_id", "batch_status", glBatchID);
             if (batchStatus.equals("1")) {
@@ -852,7 +928,7 @@ public class Program {
                 return;
             }
 
-            Global.updtActnPrcss(5);
+            //Global.updtActnPrcss(5);
             ResultSet dtst = Global.get_Batch_Trns_NoStatus(glBatchID);
             dtst.last();
             long ttltrns = dtst.getRow();
@@ -877,7 +953,7 @@ public class Program {
                         log_tbl, dateStr, Global.rnUser_ID);
                 return;
             }
-            Global.updtActnPrcss(5);
+            //Global.updtActnPrcss(5);
 
             ResultSet dteDtSt1 = Global.get_Batch_dateSums(glBatchID);
             dteDtSt1.last();
@@ -898,13 +974,18 @@ public class Program {
                 return;
             }
             int funCurID = Global.getOrgFuncCurID(Global.UsrsOrg_ID);
-            Global.updtActnPrcss(5);
+            //Global.updtActnPrcss(5);
             Program.postGLBatch(glBatchID,
                     batchSource,
                     msg_id, log_tbl, dateStr, net_accnt, funCurID);
         } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (ParseException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -1014,8 +1095,14 @@ public class Program {
 
             double aesum = Global.get_COA_AESum(Global.UsrsOrg_ID);
             double crlsum = Global.get_COA_CRLSum(Global.UsrsOrg_ID);
-            if (aesum
-                    != crlsum) {
+            Global.updateLogMsg(msg_id1,
+                    "\r\nAE SUM:" + aesum + ":CRL SUM:" + crlsum + "!\r\n",
+                    log_tbl1, dateStr, Global.rnUser_ID);
+
+            Global.updateLogMsg(msg_id,
+                    "\r\nAE SUM:" + aesum + ":CRL SUM:" + crlsum + "!\r\n",
+                    log_tbl, dateStr, Global.rnUser_ID);
+            if (aesum != crlsum) {
                 Global.updateLogMsg(msg_id1,
                         "\r\nCannot Post this Batch Since Current GL is not Balanced!Please correct the Imbalance First!\r\n",
                         log_tbl1, dateStr, Global.rnUser_ID);
@@ -1024,39 +1111,36 @@ public class Program {
                         "\r\nCannot Post this Batch Since Current GL is not Balanced!Please correct the Imbalance First!\r\n",
                         log_tbl, dateStr, Global.rnUser_ID);
 
-                Program.correctImblns();
-
+                /*Program.correctImblns();*/
                 Global.updateRptRnStopCmd(Global.runID, "1");
                 Program.checkNClosePrgrm();
-
                 return;
             }
-            Global.updtActnPrcss(5);
-
+            //Global.updtActnPrcss(5);
             ResultSet dtst = Global.get_Batch_Trns(glBatchID);
             dtst.last();
             long ttltrns = dtst.getRow();
             dtst.beforeFirst();
-
-            Global.updtActnPrcss(5);
+            //Global.updtActnPrcss(5);
             //Validating Entries
+            String[] errmsg = new String[1];
             if (!btchSrc.equals("Period Close Process")) {
                 for (int i = 0; i < ttltrns; i++) {
                     dtst.next();
-                    Global.updtActnPrcss(5);
+                    //Global.updtActnPrcss(5);
                     int accntid = Integer.parseInt(dtst.getString(10));
                     double netAmnt = Double.parseDouble(dtst.getString(11));
                     String lnDte = dtst.getString(7);
-                    String[] errmsg = new String[1];
-
-                    if (!Global.isTransPrmttd(accntid, lnDte, netAmnt, errmsg)) {
+                    System.out.println("lnDte:" + lnDte + ":accntid:" + accntid + ":netAmnt:" + netAmnt);
+                    boolean isPrmtd = Global.isTransPrmttd(accntid, lnDte, netAmnt, errmsg);
+                    System.out.println("isPrmtd:" + String.valueOf(isPrmtd));
+                    if (!isPrmtd) {
                         Global.updateLogMsg(msg_id1,
                                 "\r\n\r\n" + errmsg[0] + "\r\n\r\nOperation Cancelled because the line with the\r\n ff details was detected as an INVALID Transaction!"
                                 + "\r\nACCOUNT: " + dtst.getString(2) + "." + dtst.getString(3)
                                 + "\r\nAMOUNT: " + netAmnt
                                 + "\r\nDATE: " + lnDte,
                                 log_tbl1, dateStr, Global.rnUser_ID);
-
                         Global.updateLogMsg(msg_id,
                                 "\r\n\r\n" + errmsg[0] + "\r\n\r\nOperation Cancelled because the line with the\r\n ff details was detected as an INVALID Transaction!"
                                 + "\r\nACCOUNT: " + dtst.getString(2) + "." + dtst.getString(3)
@@ -1068,9 +1152,10 @@ public class Program {
                 }
             }
             dtst.beforeFirst();
+            //dtst = Global.get_Batch_Trns(glBatchID);
             for (int i = 0; i < ttltrns; i++) {
                 dtst.next();
-                Global.updtActnPrcss(5);
+                //Global.updtActnPrcss(5);
                 //Update the corresponding account balance and 
                 //update net income balance as well if type is R or EX
                 //update control account if any
@@ -1078,18 +1163,17 @@ public class Program {
                 int accntCurrID = Integer.parseInt(dtst.getString(18));
                 int funcCurr = Integer.parseInt(dtst.getString(8));
                 double accntCurrAmnt = Double.parseDouble(dtst.getString(16));
-
                 String acctyp = Global.getAccntType(
                         Integer.parseInt(dtst.getString(10)));
                 boolean hsBnUpdt = Global.hsTrnsUptdAcntBls(
                         Long.parseLong(dtst.getString(1)),
                         dtst.getString(7),
                         Integer.parseInt(dtst.getString(10)));
+                System.out.println("acctyp:" + acctyp + ":accntCurrAmnt:" + accntCurrAmnt + ":hsBnUpdt1:" + hsBnUpdt);
                 if (hsBnUpdt == false) {
                     double dbt1 = Double.parseDouble(dtst.getString(5));
                     double crdt1 = Double.parseDouble(dtst.getString(6));
                     double net1 = Double.parseDouble(dtst.getString(11));
-
                     if (funCurID != accntCurrID) {
                         Global.postAccntCurrTransaction(Integer.parseInt(dtst.getString(10)),
                                 Global.getSign(dbt1) * accntCurrAmnt,
@@ -1098,7 +1182,6 @@ public class Program {
                                 dtst.getString(7),
                                 Long.parseLong(dtst.getString(1)), accntCurrID);
                     }
-
                     Global.postTransaction(Integer.parseInt(dtst.getString(10)),
                             dbt1,
                             crdt1,
@@ -1112,6 +1195,7 @@ public class Program {
                         dtst.getString(7),
                         net_accnt);
 
+                System.out.println("acctyp:" + acctyp + ":accntCurrAmnt:" + accntCurrAmnt + ":hsBnUpdt2:" + hsBnUpdt);
                 if (hsBnUpdt == false) {
                     if (acctyp.equals("R")) {
                         Global.postTransaction(net_accnt,
@@ -1179,14 +1263,13 @@ public class Program {
 
             aesum = Global.get_COA_AESum(Global.UsrsOrg_ID);
             crlsum = Global.get_COA_CRLSum(Global.UsrsOrg_ID);
-            if (aesum
-                    != crlsum) {
+            if (aesum != crlsum) {
                 Global.updateLogMsg(msg_id,
                         "\r\nBatch of Transactions caused an "
                         + "IMBALANCE in the Accounting! A+E=" + aesum
                         + "\r\nC+R+L=" + crlsum + "\r\nDiff=" + (aesum - crlsum) + " will be pushed to suspense Account", log_tbl, dateStr, Global.rnUser_ID);
-                Program.correctImblns();
-                Program.correctImblns();
+                /*Program.correctImblns();
+                Program.correctImblns();*/
             } else {
                 Global.updateBatchStatus(glBatchID);
                 Global.updateLogMsg(msg_id,
@@ -1197,11 +1280,19 @@ public class Program {
                     "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()), log_tbl, dateStr, Global.rnUser_ID);
             Global.errorLog = "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
             Global.updateLogMsg(msg_id,
                     "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()), log_tbl, dateStr, Global.rnUser_ID);
             Global.errorLog = "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            Global.updateLogMsg(msg_id,
+                    "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()), log_tbl, dateStr, Global.rnUser_ID);
+            Global.errorLog = "\r\nError!" + ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -1247,15 +1338,18 @@ public class Program {
                 double lstNetBals = Double.parseDouble(rslt[2]);
                 double lstDbtBals = Double.parseDouble(rslt[0]);
                 double lstCrdtBals = Double.parseDouble(rslt[1]);
-
                 //Global.showMsg("Testing!" + rslt[2] + "\r\n" + rslt[3] + "\r\n" + dateStr, 0);
                 Global.updtAcntChrtBals(netaccntid,
                         lstDbtBals, lstCrdtBals, lstNetBals, rslt[3]);
             }
         } catch (ParseException ex) {
-
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -1282,7 +1376,6 @@ public class Program {
                 lstNetBals = Double.parseDouble(rslt[2]);
                 lstDbtBals = Double.parseDouble(rslt[0]);
                 lstCrdtBals = Double.parseDouble(rslt[1]);
-
                 //Global.showMsg("Testing!" + rslt[2] + "\r\n" + rslt[3] + "\r\n" + dateStr, 0);
                 Global.updtAcntChrtBals(cntrlAcntID,
                         lstDbtBals, lstCrdtBals, lstNetBals, rslt[3]);
@@ -1300,8 +1393,11 @@ public class Program {
                         lstDbtBals, lstCrdtBals, lstNetBals, rslt[3]);
             }
         } catch (ParseException ex) {
-
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -1316,6 +1412,7 @@ public class Program {
             int ttlRws = dtst.getRow();
             dtst.beforeFirst();
             for (int a = 0; a < ttlRws; a++) {
+                dtst.next();
                 String[] rslt = Global.getAccntLstDailyBalsInfo(
                         Integer.parseInt(dtst.getString(1)), dateStr);
                 double lstNetBals = Double.parseDouble(rslt[2]);
@@ -1344,23 +1441,28 @@ public class Program {
                 double lstNetBals = Double.parseDouble(rslt[2]);
                 double lstDbtBals = Double.parseDouble(rslt[0]);
                 double lstCrdtBals = Double.parseDouble(rslt[1]);
-
                 //Global.showMsg("Testing!" + rslt[2] + "\r\n" + rslt[3] + "\r\n" + dateStr, 0);
                 Global.updtAcntChrtBals(netaccntid,
                         lstDbtBals, lstCrdtBals, lstNetBals, rslt[3]);
             }
         } catch (ParseException ex) {
-
-        } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()));
         }
     }
 
     public static boolean sendJournalsToGL(ResultSet dtst, String intrfcTblNme, int prcID, String[] errmsg) {
         try {
-            Program.correctIntrfcImbals(intrfcTblNme);
+            //System.out.println(intrfcTblNme + "BEFORE correctIntrfcImbals");
+            /*Program.correctIntrfcImbals(intrfcTblNme);*/
+            //System.out.println(intrfcTblNme);
             //Check if Dataset Trns are balanced before calling this func
-            Global.updtActnPrcss(prcID);
+            //Global.updtActnPrcss(prcID);
             dtst.last();
             long cntr = dtst.getRow();
             dtst.beforeFirst();
@@ -1372,7 +1474,7 @@ public class Program {
                 dtst.next();
                 dbtsum += Double.parseDouble(dtst.getString(3));
                 crdtsum += Double.parseDouble(dtst.getString(4));
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
             }
             dbtsum = (double) Math.round(dbtsum * 100) / 100;
             crdtsum = (double) Math.round(crdtsum * 100) / 100;
@@ -1380,12 +1482,14 @@ public class Program {
             if (cntr == 0) {
                 errmsg[0] += "Cannot Transfer Transactions to GL because\r\n"
                         + " No Interface Transactions were found!";
+                System.out.println(errmsg[0]);
                 return false;
             }
 
             if (dbtsum != crdtsum) {
                 errmsg[0] += "Cannot Transfer Transactions to GL because\r\n"
                         + " Transactions in the GL Interface are not Balanced! Difference=" + Math.abs(dbtsum - crdtsum);
+                System.out.println(errmsg[0]);
                 return false;
             }
             //Get Todays GL Batch Name
@@ -1393,8 +1497,12 @@ public class Program {
             String btchPrfx = "Internal Payments";
             if (intrfcTblNme.equals("scm.scm_gl_interface")) {
                 btchPrfx = "Inventory";
+            } else if (intrfcTblNme.equals("mcf.mcf_gl_interface")) {
+                btchPrfx = "Banking";
+            } else if (intrfcTblNme.equals("vms.vms_gl_interface")) {
+                btchPrfx = "Vault Management";
             }
-            Global.updtActnPrcss(prcID);
+            //Global.updtActnPrcss(prcID);
             String todaysGlBatch = btchPrfx + " (" + dateStr + ")";
             long todbatchid = Global.getTodaysGLBatchID(
                     todaysGlBatch, Global.UsrsOrg_ID);
@@ -1404,7 +1512,7 @@ public class Program {
                 todbatchid = Global.getTodaysGLBatchID(
                         todaysGlBatch,
                         Global.UsrsOrg_ID);
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
             }
             if (todbatchid > 0) {
                 todaysGlBatch = Global.get_GLBatch_Nm(todbatchid);
@@ -1417,11 +1525,11 @@ public class Program {
              */
             //ResultSet dtst = Global.getAllInGLIntrfcOrg(Global.UsrsOrg_ID);
             //dateStr = Global.getFrmtdDB_Date_time();
-            Global.updtActnPrcss(prcID);
+            //Global.updtActnPrcss(prcID);
             dtst.beforeFirst();
             for (int a = 0; a < cntr; a++) {
                 dtst.next();
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
                 String src_ids = Global.getGLIntrfcIDs(Integer.parseInt(dtst.getString(1)),
                         dtst.getString(2),
                         Integer.parseInt(dtst.getString(6)), intrfcTblNme);
@@ -1457,12 +1565,13 @@ public class Program {
                 }
             }
             if (Global.get_Batch_CrdtSum(todbatchid) == Global.get_Batch_DbtSum(todbatchid)) {
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
                 Global.updtPymntAllGLIntrfcLnOrg(todbatchid, Global.UsrsOrg_ID, intrfcTblNme);
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
                 Global.updtGLIntrfcLnSpclOrg(Global.UsrsOrg_ID, intrfcTblNme, btchPrfx);
-                Global.updtActnPrcss(prcID);
+                //Global.updtActnPrcss(prcID);
                 Global.updtTodaysGLBatchPstngAvlblty(todbatchid, "1");
+                Global.updateDataNoParams("UPDATE accb.accb_trnsctn_batches SET avlbl_for_postng='1' WHERE avlbl_for_postng='0' and batch_source !='Manual'");
                 return true;
             } else {
                 errmsg[0] += "The GL Batch created is not Balanced!\r\nTransactions created will be reversed and deleted!";
@@ -1470,28 +1579,36 @@ public class Program {
                 Global.deleteBatch(todbatchid, todaysGlBatch);
                 return false;
             }
+        } catch (NumberFormatException ex) {
+            errmsg[0] += "Number Error Sending Payment to GL!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            return false;
+        } catch (SQLException ex) {
+            errmsg[0] += "SQL Error Sending Payment to GL!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            return false;
         } catch (Exception ex) {
-            errmsg[0] += "Error Sending Payment to GL!\r\n" + ex.getMessage();
+            System.out.println("Error Sending Payment to GL!!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
             return false;
         }
     }
 
     private static void correctIntrfcImbals(String intrfcTblNm) {
         try {
+            //System.out.println("INSIDE correctIntrfcImbals!");
             int suspns_accnt = Global.get_Suspns_Accnt(Global.UsrsOrg_ID);
             ResultSet dteDtSt = Global.get_Intrfc_dateSums(intrfcTblNm, Global.UsrsOrg_ID);
             dteDtSt.last();
             int ttlRws = dteDtSt.getRow();
             dteDtSt.beforeFirst();
             if (ttlRws > 0 && suspns_accnt > 0) {
+                System.out.println("SUSPNS:" + suspns_accnt);
                 String msg1 = "";
                 for (int i = 0; i < ttlRws; i++) {
                     dteDtSt.next();
                     double dlyDbtAmnt = Double.parseDouble(dteDtSt.getString(2));
                     double dlyCrdtAmnt = Double.parseDouble(dteDtSt.getString(3));
                     int orgID = Global.UsrsOrg_ID;
-                    if (dlyDbtAmnt
-                            != dlyCrdtAmnt) {
+                    System.out.println("dlyDbtAmnt:" + dlyDbtAmnt + ":dlyCrdtAmnt:" + dlyCrdtAmnt);
+                    if (dlyDbtAmnt != dlyCrdtAmnt) {
                         //long suspns_batch_id = glBatchID;
                         int funcCurrID = Global.getOrgFuncCurID(orgID);
                         BigDecimal dffrnc = BigDecimal.valueOf(dlyDbtAmnt - dlyCrdtAmnt);
@@ -1501,12 +1618,14 @@ public class Program {
                         }
                         BigDecimal imbalAmnt = dffrnc.abs();
                         double netAmnt = (double) Global.dbtOrCrdtAccntMultiplier(suspns_accnt, incrsDcrs) * imbalAmnt.doubleValue();
+                        System.out.println("netAmnt:" + netAmnt + ":imbalAmnt:" + imbalAmnt);
 
                         SimpleDateFormat frmtr = new SimpleDateFormat("dd-MMM-yyyy");
                         SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd");
                         String dateStr1 = frmtr.format(frmtr1.parse(dteDtSt.getString(1)).getTime()) + " 00:00:00";
 
                         String dateStr = Global.getFrmtdDB_Date_time();
+                        System.out.println("dateStr1:" + dateStr1 + ":dateStr:" + dateStr);
 
                         if (Global.getIntrfcTrnsID(intrfcTblNm, suspns_accnt, netAmnt,
                                 dteDtSt.getString(1) + " 00:00:00") > 0) {
@@ -1521,7 +1640,19 @@ public class Program {
                                         imbalAmnt.doubleValue(), dateStr1,
                                         funcCurrID, 0,
                                         netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
-                            } else {
+                            } else if (intrfcTblNm.equals("mcf.mcf_gl_interface")) {
+                                Global.createMCFGLIntFcLn(suspns_accnt,
+                                        "Correction of Imbalance in GL Interface Table as at " + dateStr1,
+                                        imbalAmnt.doubleValue(), dateStr1,
+                                        funcCurrID, 0,
+                                        netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
+                            } else if (intrfcTblNm.equals("vms.vms_gl_interface")) {
+                                Global.createVMSGLIntFcLn(suspns_accnt,
+                                        "Correction of Imbalance in GL Interface Table as at " + dateStr1,
+                                        imbalAmnt.doubleValue(), dateStr1,
+                                        funcCurrID, 0,
+                                        netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
+                            } else if (intrfcTblNm.equals("pay.pay_gl_interface")) {
                                 Global.createPayGLIntFcLn(suspns_accnt,
                                         "Correction of Imbalance in GL Interface Table as at " + dateStr1,
                                         imbalAmnt.doubleValue(), dateStr1,
@@ -1534,7 +1665,19 @@ public class Program {
                                     0, dateStr1,
                                     funcCurrID, imbalAmnt.doubleValue(),
                                     netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
-                        } else {
+                        } else if (intrfcTblNm.equals("mcf.mcf_gl_interface")) {
+                            Global.createMCFGLIntFcLn(suspns_accnt,
+                                    "Correction of Imbalance in GL Interface Table as at " + dateStr1,
+                                    0, dateStr1,
+                                    funcCurrID, imbalAmnt.doubleValue(),
+                                    netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
+                        } else if (intrfcTblNm.equals("vms.vms_gl_interface")) {
+                            Global.createVMSGLIntFcLn(suspns_accnt,
+                                    "Correction of Imbalance in GL Interface Table as at " + dateStr1,
+                                    0, dateStr1,
+                                    funcCurrID, imbalAmnt.doubleValue(),
+                                    netAmnt, "Imbalance Correction", -1, -1, dateStr, "USR");
+                        } else if (intrfcTblNm.equals("pay.pay_gl_interface")) {
                             Global.createPayGLIntFcLn(suspns_accnt,
                                     "Correction of Imbalance in GL Interface Table as at " + dateStr1,
                                     imbalAmnt.doubleValue(), dateStr1,
@@ -1544,13 +1687,16 @@ public class Program {
                     }
                 }
             } else {
-                //Global.mnFrm.cmCde.showMsg("There's no Imbalance to correct!", 0);
-                //return;
+                System.out.println("There is no Imbalance to Correct!");
             }
         } catch (SQLException ex) {
-
+            System.out.println("SQL Error Correct Interface Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println("Number Error Correct Interface Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         } catch (ParseException ex) {
+            System.out.println("Parse Error Correct Interface Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println("Error Correct Interface Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -1575,7 +1721,7 @@ public class Program {
              1. Correct all Trns Det Net Balance Amount
              2. Get all wrong daily bals values
              */
-            Global.updtActnPrcss(5, 90);
+            //Global.updtActnPrcss(5, 90);
             ResultSet dtst = Global.get_WrongNetBalncs(Global.UsrsOrg_ID);
             dtst.last();
             int ttlRws = dtst.getRow();
@@ -1587,7 +1733,7 @@ public class Program {
                 String updtSQL = "UPDATE accb.accb_trnsctn_details "
                         + "SET net_amount=" + netAmnt + " WHERE transctn_id=" + trnsID;
                 Global.updateDataNoParams(updtSQL);
-                Global.updtActnPrcss(5, 90);
+                //Global.updtActnPrcss(5, 90);
             }
 
             dtst = Global.get_WrongBalncs(Global.UsrsOrg_ID);
@@ -1596,7 +1742,7 @@ public class Program {
             dtst.beforeFirst();
             for (int i = 0; i < ttlRws; i++) {
                 dtst.next();
-                Global.updtActnPrcss(5, 30);
+                //Global.updtActnPrcss(5, 30);
 
                 String acctyp = Global.getAccntType(
                         Integer.parseInt(dtst.getString(2)));
@@ -1638,7 +1784,7 @@ public class Program {
                 //this.reloadOneAcntChrtBals(Integer.parseInt(dtst.Tables[0].Rows[i][1].ToString()), net_accnt);
             }
 
-            Global.updtActnPrcss(5, 50);
+            //Global.updtActnPrcss(5, 50);
             Program.reloadAcntChrtBals(net_accnt);
 
             dtst = Global.get_WrongNetIncmBalncs(Global.UsrsOrg_ID);
@@ -1648,7 +1794,7 @@ public class Program {
 
             for (int i = 0; i < ttlRws; i++) {
                 dtst.next();
-                Global.updtActnPrcss(5, 30);
+                //Global.updtActnPrcss(5, 30);
                 String acctyp = Global.getAccntType(
                         Integer.parseInt(dtst.getString(2)));
 
@@ -1663,7 +1809,7 @@ public class Program {
                         dtst.getString(8), -993);
             }
 
-            Global.updtActnPrcss(5, 50);
+            //Global.updtActnPrcss(5, 50);
             Program.reloadOneAcntChrtBals(net_accnt, net_accnt);
 
             String[] errmsg = new String[1];
@@ -1671,7 +1817,7 @@ public class Program {
             BigDecimal crlsum = BigDecimal.valueOf(Global.get_COA_CRLSum(Global.UsrsOrg_ID));
             if (aesum
                     != crlsum) {
-                Global.updtActnPrcss(5, 10);
+                //Global.updtActnPrcss(5, 10);
                 if (Program.postIntoSuspnsAccnt(aesum,
                         crlsum, Global.UsrsOrg_ID, false, errmsg) == false
                         && !errmsg[0].equals("")) {
@@ -1680,10 +1826,13 @@ public class Program {
             }
 
             Program.reloadOneAcntChrtBals(suspns_accnt, net_accnt);
-            Global.updtActnPrcss(5, 1);
+            //Global.updtActnPrcss(5, 1);
         } catch (SQLException ex) {
-
+            System.out.println("SQL Error Correct GL Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         } catch (NumberFormatException ex) {
+            System.out.println("Number Error Correct GL Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+        } catch (Exception ex) {
+            System.out.println("Error Correct GL Imbalance!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         }
     }
 

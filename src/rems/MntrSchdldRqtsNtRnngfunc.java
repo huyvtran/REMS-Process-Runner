@@ -5,8 +5,11 @@
  */
 package rems;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -31,6 +34,7 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
             do {
                 //Get all rquest runs not running
                 //Launch appropriate process runner
+                System.out.println("Inside MntrSchdldRqtsNtRnngfunc ");
                 Program.checkNClosePrgrm();
                 ResultSet dtst = Global.get_SchdldRunsNtRnng();
                 dtst.last();
@@ -46,16 +50,15 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
                     if (rptRnnrNm == "") {
                         rptRnnrNm = "Standard Process Runner";
                     }
-                    if (rnnrPrcsFile == "") {
+                    if (rnnrPrcsFile == "" || rnnrPrcsFile.contains(".jar") == false) {
                         rnnrPrcsFile = "/bin/REMSProcessRunner.jar";
                     }
 
-                    rnnrPrcsFile = rnnrPrcsFile.replace("/bin", "").replace("\\bin", "");
+                    rnnrPrcsFile = rnnrPrcsFile.replace("/bin/", "").replace("\\bin\\", "");
 
                     if (Global.doesLstRnTmExcdIntvl(rptid, "65 second", rptrnid) == true) {
                         Global.updatePrcsRnnrCmd(rptRnnrNm, "0", rptrnnrid);
                         Global.updateRptRnStopCmd(rptrnid, "0");
-                        File file = new File(Global.appStatPath + "/" + rnnrPrcsFile);
                         String[] args = {"\"" + Global.Hostnme + "\"",
                             Global.Portnum,
                             "\"" + Global.Uname + "\"",
@@ -63,11 +66,53 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
                             "\"" + Global.Dbase + "\"",
                             "\"" + rptRnnrNm + "\"",
                             String.valueOf(rptrnid),
-                            "\"" + file.getParentFile().getParent() + "\"",
+                            "\"" + Global.appStatPath + "\"",
                             "WEB",
-                            "\"" + Global.dataBasDir + "\""};
-                        Runtime runTime = Runtime.getRuntime();
-                        Process process = runTime.exec("java -jar " + Global.appStatPath + "/" + rnnrPrcsFile + " " + String.join(" ", args));
+                            "\"" + Global.dataBasDir + "\"",
+                            "\"" + Global.AppUrl + "\""};
+                        if (rnnrPrcsFile.contains(".jar")) {
+                            //System.out.println(("java -jar " + Global.appStatPath + "/" + rnnrPrcsFile + " " + String.join(" ", args)).replace(Global.Pswd, "**************"));
+                            //Runtime runTime = Runtime.getRuntime();
+                            //Process process = runTime.exec("java -jar " + Global.appStatPath + "/" + rnnrPrcsFile + " " + String.join(" ", args));
+                            String batchFilnm = Global.appStatPath + "/" + "MntrSchdldRqtsNtRnngfunc_" + String.valueOf(rptrnid) + ".sh";
+                            PrintWriter fileWriter;
+                            fileWriter = new PrintWriter(batchFilnm, "UTF-8");
+                            StringBuilder strSB = new StringBuilder("#!/bin/sh").append(System.getProperty("line.separator"));
+                            strSB.append("echo \"import pty; pty.spawn('/bin/bash')\" > /tmp/asdf.py").append(System.getProperty("line.separator"));
+                            strSB.append("java -jar ").append(Global.appStatPath).append("/").append(rnnrPrcsFile).append(" ").append(String.join(" ", args));
+                            fileWriter.println(strSB);
+                            fileWriter.close();
+                            //Runtime.getRuntime().exec("sed -i.bak 's/\r//g' " + batchFilnm);
+                            Runtime.getRuntime().exec("chmod +x " + batchFilnm);
+                            Runtime.getRuntime().exec("chmod 7777 -R /opt");
+                            try {
+                                ProcessBuilder pb = new ProcessBuilder(batchFilnm);
+                                pb.redirectErrorStream(true);
+                                Process p = pb.start();
+                                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                                String line = null;
+                                while ((line = reader.readLine()) != null) {
+                                    System.out.print("#");//line
+                                }
+                                boolean success = (new java.io.File(batchFilnm)).delete();
+                            } catch (IOException ex) {
+                                //write to log file
+                                Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+                                System.out.println(Global.errorLog);
+                                Global.writeToLog();
+                            }
+                            //Runtime.getRuntime().exec("/bin/sh " + batchFilnm);
+
+                            /*Process p;
+                            String[] cmd = {"/bin/sh", batchFilnm};
+                            p = Runtime.getRuntime().exec(cmd);
+                            p.waitFor();
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                System.out.println(line);
+                            }*/
+                        }
                     }
 
                     long mxConns = 0;
@@ -75,7 +120,8 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
                     do {
                         mxConns = Global.getMxAllwdDBConns();
                         curCons = Global.getCurDBConns();
-                        Global.errorLog = "Inside Running of Scheduled Requests=> Current Connections: " + curCons + " Max Connections: " + mxConns;
+                        Global.errorLog = "Inside Running of Scheduled Report/Process=> Current Connections: " + curCons + " Max Connections: " + mxConns + System.getProperty("line.separator");
+                        System.out.println(Global.errorLog);
                         Global.writeToLog();
                         Program.checkNClosePrgrm();
                         Thread.sleep(10000);
@@ -88,6 +134,7 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
         } catch (SQLException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread3.isAlive()) {
                 Program.thread3.interrupt();
@@ -95,6 +142,7 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
         } catch (NumberFormatException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread3.isAlive()) {
                 Program.thread3.interrupt();
@@ -102,6 +150,7 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
         } catch (IOException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread3.isAlive()) {
                 Program.thread3.interrupt();
@@ -109,6 +158,15 @@ public class MntrSchdldRqtsNtRnngfunc extends Thread {
         } catch (InterruptedException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
+            Global.writeToLog();
+            if (Program.thread3.isAlive()) {
+                Program.thread3.interrupt();
+            }
+        } catch (Exception ex) {
+            //write to log file
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread3.isAlive()) {
                 Program.thread3.interrupt();

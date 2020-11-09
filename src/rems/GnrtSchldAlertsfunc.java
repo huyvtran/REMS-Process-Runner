@@ -17,47 +17,48 @@ import java.util.Calendar;
  * @author richard.adjei-mensah
  */
 public class GnrtSchldAlertsfunc extends Thread {
-    
+
     private Thread t;
     private String threadName;
-    
+
     GnrtSchldAlertsfunc(String name) {
         threadName = name;
         System.out.println("Creating " + threadName);
     }
-    
+
     @Override
     public void run() {
-        
+
         try {
             do {
                 //1. Get all enabled schedules
                 //2. for each enabled schedule check last time it was run
                 // if difference between last_time_active is >= schedule interval 
                 //and time component is >= current time then generate another schedule run
+                System.out.println("Inside GnrtSchldAlertsfunc ");
                 Program.checkNClosePrgrm();
                 ResultSet dtst = Global.get_AlertSchdules();
                 dtst.last();
                 int ttlRws = dtst.getRow();
                 dtst.beforeFirst();
-                
+
                 for (int i = 0; i < ttlRws; i++) {
                     dtst.next();
                     long rpt_id = Long.parseLong(dtst.getString(2));
                     long alertID = Long.parseLong(dtst.getString(1));
-                    
-                    if (Global.doesLstRnTmExcdIntvl(rpt_id,
-                            dtst.getString(5) + " " + dtst.getString(6), -1) == true) {
+
+                    if (Global.doesLstAlrtTmExcdIntvl(rpt_id,
+                            dtst.getString(5) + " " + dtst.getString(6), -1, alertID) == true) {
                         String dateStr = Global.getDB_Date_time();
-                        
+
                         SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                        
+
                         Calendar bdte2 = Calendar.getInstance();
                         bdte2.setTime(frmtr1.parse(dateStr));
                         bdte2.add(Calendar.MINUTE, -1);
                         bdte2.add(Calendar.SECOND, -59);
-                        dateStr = frmtr1.format(bdte2);
-                        
+                        dateStr = frmtr1.format(bdte2.getTime());
+
                         String outputUsd = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "output_type", rpt_id);
                         String orntnUsd = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "portrait_lndscp", rpt_id);
                         String prmIDs = "";
@@ -77,6 +78,7 @@ public class GnrtSchldAlertsfunc extends Thread {
                         String colsToAvrg = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "cols_to_average", rpt_id);
                         String colsToFrmt = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "cols_to_no_frmt", rpt_id);
                         String rpTitle = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "report_name", rpt_id);
+                        String alrtTitle = dtst.getString(16);
 
                         //Report Title
                         prmVals += rpTitle + "|";
@@ -104,22 +106,22 @@ public class GnrtSchldAlertsfunc extends Thread {
                         //orntnUsd
                         prmVals += orntnUsd + "|";
                         prmIDs += Global.sysParaIDs[7] + "|";
-                        
+
                         Global.createSchdldRptRn(
                                 Long.parseLong(dtst.getString(7)), dateStr,
                                 rpt_id, prmIDs, prmVals, outputUsd, orntnUsd,
                                 Integer.parseInt(dtst.getString(1)), -1);
-                        
+
                         Thread.sleep(5000);
-                        
+
                         long rptRunID = Global.getRptRnID(rpt_id,
                                 Long.parseLong(dtst.getString(7)), dateStr);
-                        
+
                         long msg_id = Global.getLogMsgID("rpt.rpt_run_msgs",
                                 "Process Run", rptRunID);
                         if (msg_id <= 0) {
                             Global.createLogMsg(dateStr
-                                    + " .... Alert Run is about to Start...(Being run by "
+                                    + " .... Alert (" + alrtTitle + ") Run is about to Start...(Being run by "
                                     + Global.get_user_name(Long.parseLong(dtst.getString(7))) + ")",
                                     "rpt.rpt_run_msgs", "Process Run", rptRunID, dateStr);
                         }
@@ -131,9 +133,10 @@ public class GnrtSchldAlertsfunc extends Thread {
                 do {
                     mxConns = Global.getMxAllwdDBConns();
                     curCons = Global.getCurDBConns();
-                    Global.errorLog = "Inside Generation of Scheduled Requests=> Current Connections: " + curCons + " Max Connections: " + mxConns;
+                    Global.errorLog = "Inside Generation of Scheduled Alert Requests=> Current Connections: " + curCons + " Max Connections: " + mxConns + System.getProperty("line.separator");
+                    System.out.println(Global.errorLog);
                     Global.writeToLog();
-                    
+
                     Thread.sleep(30000);
                     long prgmID = Global.getGnrlRecID("rpt.rpt_prcss_rnnrs", "rnnr_name", "prcss_rnnr_id", Program.runnerName);
                     Program.updatePrgrm(prgmID);
@@ -142,6 +145,7 @@ public class GnrtSchldAlertsfunc extends Thread {
         } catch (SQLException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread6.isAlive()) {
                 Program.thread6.interrupt();
@@ -149,6 +153,7 @@ public class GnrtSchldAlertsfunc extends Thread {
         } catch (NumberFormatException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread6.isAlive()) {
                 Program.thread6.interrupt();
@@ -156,6 +161,7 @@ public class GnrtSchldAlertsfunc extends Thread {
         } catch (ParseException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread6.isAlive()) {
                 Program.thread6.interrupt();
@@ -163,6 +169,15 @@ public class GnrtSchldAlertsfunc extends Thread {
         } catch (InterruptedException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
+            Global.writeToLog();
+            if (Program.thread6.isAlive()) {
+                Program.thread6.interrupt();
+            }
+        } catch (Exception ex) {
+            //write to log file
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread6.isAlive()) {
                 Program.thread6.interrupt();
@@ -170,7 +185,7 @@ public class GnrtSchldAlertsfunc extends Thread {
         } finally {
         }
     }
-    
+
     @Override
     public void start() {
         System.out.println("Starting " + threadName);
@@ -179,5 +194,5 @@ public class GnrtSchldAlertsfunc extends Thread {
             t.start();
         }
     }
-    
+
 }

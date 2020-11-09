@@ -5,26 +5,9 @@
  */
 package rems;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.activation.DataSource;
-import javax.activation.URLDataSource;
-
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 //import org.apache.commons.mail.settings.EmailConfiguration;
 //import org.junit.Before;
 //import org.junit.Test;
-
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Font;
@@ -44,7 +27,6 @@ import net.sf.jasperreports.engine.export.JRRtfExporter;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 //import net.sf.jasperreports.view.JasperViewer;
-import java.io.*;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -53,13 +35,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.nio.file.*;
 //import org.apache.commons.io.FileUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.http.entity.StringEntity;
+import org.json.simple.JSONObject;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -76,14 +61,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 //import net.sf.jasperreports.engine.JRAlignment;
 import net.sf.jasperreports.engine.JRException;
+//import net.sf.jasperreports.engine.JRExporterParameter;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.design.JRDesignBand;
@@ -93,6 +77,7 @@ import net.sf.jasperreports.engine.design.JRDesignQuery;
 import net.sf.jasperreports.engine.design.JRDesignStaticText;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.design.JRDesignLine;
+//import net.sf.jasperreports.engine.export.JRXlsExporterParameter;
 import net.sf.jasperreports.engine.type.HorizontalTextAlignEnum;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
 import net.sf.jasperreports.export.SimpleCsvReportConfiguration;
@@ -102,15 +87,32 @@ import net.sf.jasperreports.export.SimpleRtfReportConfiguration;
 import net.sf.jasperreports.export.SimpleWriterExporterOutput;
 import net.sf.jasperreports.export.SimpleXlsReportConfiguration;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail.*;
 import org.apache.commons.mail.EmailAttachment;
 import org.apache.commons.mail.EmailException;
-import org.apache.commons.mail.HtmlEmail;
+//import org.apache.commons.mail.HtmlEmail;
+import java.util.Properties;
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+
+import net.sf.jasperreports.engine.JRScriptlet;
+import net.sf.jasperreports.engine.xml.JRScriptletFactory;
+import org.apache.commons.mail.DefaultAuthenticator;
+
 import org.apache.commons.mail.ImageHtmlEmail;
-import org.apache.commons.mail.SimpleEmail;
 import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.validator.routines.EmailValidator;
@@ -122,6 +124,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.simple.JSONArray;
 //import net.sf.jasperreports.view.JasperViewer;
 
 /**
@@ -130,9 +133,10 @@ import org.apache.http.message.BasicNameValuePair;
  */
 public class Global {
 
+    public static String[] macDet;
     public static String HostOSNme = "windows";
     public static String Hostnme = "localhost";
-    public static String Portnum = "5433";
+    public static String Portnum = "5432";
     public static String Uname = "postgres";
     public static String Pswd = "Rho201410p";
     public static String Dbase = "test_database";
@@ -147,7 +151,9 @@ public class Global {
     public static String AppKey = "ROMeRRTRREMhbnsdGeneral KeyZzfor Rhomi|com Systems "
             + "Tech. !Ltd Enterpise/Organization @763542ERPorbjkSOFTWARE"
             + "asdbhi68103weuikTESTfjnsdfRSTLU../";
-    public static String AppUrl = "http://www.rhomicom.com";
+    public static String AppUrl = "http://cloud.rhomicom.com";
+    public static int RhoAPIUrlID = -1;
+    public static String RhoAPIUrl = "http://rho-nginx:8000";
     public static int UsrsOrg_ID = -1;
     public static long runID = -1;
     public static long rnUser_ID = -1;
@@ -168,7 +174,7 @@ public class Global {
         "Cols Nos To Count or Use in Charts:", "Columns To Sum:", "Columns To Average:",
         "Columns To Format Numerically:", "Report Output Formats", "Report Orientations"};
 
-    public static ResultSet selectDataNoParams(String selSql) {
+    public static ResultSet selectDataNoParams(String selSql) throws ClassNotFoundException, SQLException, Exception {
         ResultSet selDtSt = null;
         Statement stmt = null;
         try {
@@ -176,23 +182,34 @@ public class Global {
             Class.forName("org.postgresql.Driver");
             mycon = DriverManager.getConnection(Global.connStr,
                     Global.Uname, Global.Pswd);
-            mycon.setAutoCommit(false);
+            mycon.setAutoCommit(true);
             //System.out.println("Opened database successfully");
 
             stmt = mycon.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             selDtSt = stmt.executeQuery(selSql);
+            //mycon.commit();
             //stmt.close();
             //mycon.close();
             return selDtSt;
-        } catch (Exception ex) {
-            Global.errorLog = selSql + "\r\n" + ex.getMessage();
+        } catch (ClassNotFoundException ex) {
+            Global.errorLog = selSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-            return selDtSt;
-        } finally {
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (SQLException ex) {
+            Global.errorLog = selSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (Exception ex) {
+            Global.errorLog = selSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
         }
     }
 
-    public static void deleteDataNoParams(String delSql) {
+    public static void deleteDataNoParams(String delSql) throws ClassNotFoundException, SQLException, Exception {
         Statement stmt = null;
         try {
             Connection mycon = null;
@@ -207,15 +224,25 @@ public class Global {
             mycon.commit();
             stmt.close();
             mycon.close();
-        } catch (Exception ex) {
-            Global.errorLog = delSql + "\r\n" + ex.getMessage();
+        } catch (ClassNotFoundException ex) {
+            Global.errorLog = delSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-        } finally {
-
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (SQLException ex) {
+            Global.errorLog = delSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (Exception ex) {
+            Global.errorLog = delSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
         }
     }
 
-    public static void insertDataNoParams(String insSql) {
+    public static void insertDataNoParams(String insSql) throws ClassNotFoundException, SQLException, Exception {
         Statement stmt = null;
         try {
             Connection mycon = null;
@@ -230,15 +257,25 @@ public class Global {
             mycon.commit();
             stmt.close();
             mycon.close();
-        } catch (Exception ex) {
-            Global.errorLog = insSql + "\r\n" + ex.getMessage();
+        } catch (ClassNotFoundException ex) {
+            Global.errorLog = insSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-        } finally {
-
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (SQLException ex) {
+            Global.errorLog = insSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (Exception ex) {
+            Global.errorLog = insSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
         }
     }
 
-    public static void updateDataNoParams(String updtSql) {
+    public static void updateDataNoParams(String updtSql) throws ClassNotFoundException, SQLException, Exception {
         Statement stmt = null;
         try {
             Connection mycon = null;
@@ -253,37 +290,67 @@ public class Global {
             mycon.commit();
             stmt.close();
             mycon.close();
-        } catch (Exception ex) {
-            Global.errorLog = updtSql + "\r\n" + ex.getMessage();
+        } catch (ClassNotFoundException ex) {
+            Global.errorLog = updtSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-        } finally {
-
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (SQLException ex) {
+            Global.errorLog = updtSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (Exception ex) {
+            Global.errorLog = updtSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
         }
     }
 
-    public static void executeGnrlSQL(String genSql) {
+    public static void executeGnrlSQL(String genSql) throws ClassNotFoundException, SQLException, Exception {
         Statement stmt = null;
         try {
             Connection mycon = null;
             Class.forName("org.postgresql.Driver");
-            mycon = DriverManager.getConnection(Global.connStr,
-                    Global.Uname, Global.Pswd);
-            mycon.setAutoCommit(false);
+            mycon = DriverManager.getConnection(Global.connStr, Global.Uname, Global.Pswd);
             //System.out.println("Opened database successfully");
-
             stmt = mycon.createStatement();
-            stmt.executeUpdate(genSql);
-            mycon.commit();
-            Global.updateLogMsg(Global.logMsgID,
-                    "\r\n" + stmt.getWarnings().toString() + ": " + mycon.getWarnings().toString() + "\r\n",
-                    Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
+            mycon.setAutoCommit(true);
+            //stmt.addBatch(genSql);
+            stmt.execute(genSql);
+            //mycon.setAutoCommit(false);
+            //mycon.commit();
+            try {
+                Global.updateLogMsg(Global.logMsgID,
+                        "\r\n" + stmt.getWarnings().toString() + ": " + mycon.getWarnings().toString() + "\r\n",
+                        Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
+                System.out.println(stmt.getWarnings().toString() + ": " + mycon.getWarnings().toString());
+            } catch (SQLException ex) {
+                Global.errorLog = genSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+                Global.writeToLog();
+            } catch (Exception ex) {
+                Global.errorLog = genSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+                Global.writeToLog();
+                System.out.println(Global.errorLog);
+            }
             stmt.close();
             mycon.close();
-        } catch (Exception ex) {
-            Global.errorLog = genSql + "\r\n" + ex.getMessage();
+        } catch (ClassNotFoundException ex) {
+            Global.errorLog = genSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-        } finally {
-
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (SQLException ex) {
+            Global.errorLog = genSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
+        } catch (Exception ex) {
+            Global.errorLog = genSql + System.getProperty("line.separator") + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            System.out.println(Global.errorLog);
+            throw ex;
         }
     }
 
@@ -328,7 +395,13 @@ public class Global {
                 + "', last_update_by=" + String.valueOf(userID)
                 + ", last_update_date='" + dateStr
                 + "' WHERE msg_id = " + String.valueOf(msgid);
-        Global.updateDataNoParams(updtSQL);
+        try {
+            Global.updateDataNoParams(updtSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     static void MinimizeFootprint() {
@@ -337,6 +410,7 @@ public class Global {
 
     public static void minimizeMemory() {
         try {
+            System.gc();
 //        GC.Collect(GC.MaxGeneration);
 //        GC.WaitForPendingFinalizers();
 //        SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle,
@@ -569,6 +643,7 @@ public class Global {
             String fileName = jsprReportPath;
             File theFile = new File(fileName);
             JasperDesign jasperDesign = JRXmlLoader.load(theFile);
+
             //Build a new query
             //rptSQL
             String theQuery = rptSQL;
@@ -582,7 +657,7 @@ public class Global {
             System.out.println("Compiled Successfully");
             Global.updateLogMsg(Global.logMsgID, "\r\nCompiled Successfully",
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
-            //JasperReport jasperReport = JasperCompileManager.compileReport(reportPath);            
+            //JRScriptlet[] aaa=    jasperReport.getScriptlets();
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("P_ImageUrl", Global.getOrgImgsDrctry() + "/" + String.valueOf(Global.UsrsOrg_ID) + ".png");
             params.put("P_ReportTitle", reportTitle);
@@ -601,6 +676,36 @@ public class Global {
             JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, params, connection);
 
             if (outputUsd.equals("MICROSOFT EXCEL")) {
+                /*File destFile = new File(outfileName);
+
+                JRXlsExporter exporter = new JRXlsExporter();
+
+                exporter.setParameter(JRExporterParameter.JASPER_PRINT, jasperPrint);
+                exporter.setParameter(JRXlsExporterParameter.IS_ONE_PAGE_PER_SHEET, Boolean.TRUE);
+                exporter.setParameter(JRXlsExporterParameter.IS_DETECT_CELL_TYPE, Boolean.TRUE);
+                exporter.setParameter(JRXlsExporterParameter.IS_WHITE_PAGE_BACKGROUND, Boolean.FALSE);
+                exporter.setParameter(JRXlsExporterParameter.IS_REMOVE_EMPTY_SPACE_BETWEEN_ROWS, Boolean.TRUE);
+                exporter.setParameter(JRExporterParameter.OUTPUT_FILE_NAME, destFile.toString());
+                exporter.setParameter(JRXlsExporterParameter.IS_ONE_PAGE_PER_SHEET, Boolean.FALSE);
+                exporter.exportReport();
+                SimpleXlsReportConfiguration configuration = new SimpleXlsReportConfiguration();
+                configuration.setOnePagePerSheet(false);
+                configuration.setDetectCellType(true);
+                configuration.setRemoveEmptySpaceBetweenRows(true);
+                configuration.setCollapseRowSpan(false);
+                configuration.setWhitePageBackground(false);
+
+                File file = new File(outfileName);
+                FileOutputStream fos = new FileOutputStream(file, true);
+                JRXlsExporter exporterXLS = new JRXlsExporter();
+                exporterXLS.setExporterInput(new SimpleExporterInput(jasperPrint));
+                exporterXLS.setExporterOutput(new SimpleOutputStreamExporterOutput(outfileName));
+                exporterXLS.setConfiguration(configuration);
+                exporterXLS.exportReport();
+
+                fos.flush();
+                fos.close();*/
+ /**/
                 JRXlsExporter xlsExporter = new JRXlsExporter();
 
                 xlsExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
@@ -638,57 +743,41 @@ public class Global {
             } else {
                 JasperExportManager.exportReportToPdfFile(jasperPrint, outfileName);
             }
-
-            //JasperViewer.viewReport(jasperPrint, false);
-//            if (Desktop.isDesktopSupported() && Global.callngAppType.equals("DESKTOP")) {
-//                try {
-//                    File myFile = new File(outfileName);
-//                    Desktop.getDesktop().open(myFile);
-//                } catch (IOException ex) {
-//                    // no application registered for PDFs
-//                }
-//            }
-//            Runtime runTime = Runtime.getRuntime();
-//            Process process = runTime
-//            .exec("C:/Users/richard.adjei-mensah/Desktop/Test1.pdf");
-//
-//            System.out.println("Closing report");
-//            process.destroy();
             connection.close();
         } catch (JRException ex) {
             System.out.println(ex.getMessage());
             Global.errorLog += ex.getMessage() + System.getProperty("line.separator") + ex.toString() + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         } catch (ClassNotFoundException e) {
             System.out.println(e.getMessage());
             Global.errorLog += e.getMessage() + System.getProperty("line.separator") + Arrays.toString(e.getStackTrace());
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             Global.errorLog += e.getMessage() + System.getProperty("line.separator") + Arrays.toString(e.getStackTrace());
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
             Global.errorLog += ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         } finally {
             //System.out.println(ex.getMessage());
             //Global.errorLog += ex.getMessage();
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         }
         try {
@@ -698,19 +787,27 @@ public class Global {
             Global.errorLog += e.getMessage() + System.getProperty("line.separator") + Arrays.toString(e.getStackTrace());
             Global.writeToLog();
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nLog Messages ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nLog Messages ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         }
     }
 
     public static long getNewMsgSentID() throws SQLException {
-        //String strSql = "select nextval('accb.accb_trnsctn_batches_batch_id_seq'::regclass);";
-        String strSql = "select nextval('alrt.alrt_msgs_sent_msg_sent_id_seq')";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
-        while (dtst.next()) {
-            return dtst.getLong(1);
+        try {
+            //String strSql = "select nextval('accb.accb_trnsctn_batches_batch_id_seq'::regclass);";
+            String strSql = "select nextval('alrt.alrt_msgs_sent_msg_sent_id_seq')";
+            ResultSet dtst = Global.selectDataNoParams(strSql);
+            while (dtst.next()) {
+                return dtst.getLong(1);
+            }
+            return -1;
+        } catch (SQLException ex) {
+            return -1;
+        } catch (ClassNotFoundException ex) {
+            return -1;
+        } catch (Exception ex) {
+            return -1;
         }
-        return -1;
     }
 
     public static ResultSet get_RptRun_Det(long rptRunID) {
@@ -719,7 +816,14 @@ public class Global {
                 + "output_used, orntn_used, last_actv_date_tme, is_this_from_schdler, "
                 + "shld_run_stop, alert_id, msg_sent_id "
                 + "FROM rpt.rpt_report_runs WHERE rpt_run_id = " + String.valueOf(rptRunID);
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -730,7 +834,14 @@ public class Global {
                 + "rpt_layout, imgs_col_nos, csv_delimiter, process_runner, is_seeded_rpt, jrxml_file_name "
                 + "FROM rpt.rpt_reports WHERE report_id = " + String.valueOf(rptID);
         //System.out.println(strSql);
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -741,7 +852,15 @@ public class Global {
                 + "repeat_uom, repeat_every, run_at_spcfd_hour, attchment_urls, "
                 + "end_hour "
                 + "FROM alrt.alrt_alerts WHERE alert_id = " + String.valueOf(alertID);
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        //System.out.println(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -750,17 +869,61 @@ public class Global {
                 + "report_id, bcc_list, person_id, cstmr_spplr_id, created_by, creation_date,"
                 + "alert_id, sending_status, err_msg, attch_urls"
                 + ", msg_type FROM alrt.alrt_msgs_sent WHERE msg_sent_id = " + String.valueOf(msgSentID);
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static String get_Rpt_SQL(long rptID) throws SQLException {
-        String strSql = "SELECT rpt_sql_query "
-                + "FROM rpt.rpt_reports WHERE report_id = " + String.valueOf(rptID);
+        try {
+            String strSql = "SELECT rpt_sql_query "
+                    + "FROM rpt.rpt_reports WHERE report_id = " + String.valueOf(rptID);
 
-        ResultSet dtst = Global.selectDataNoParams(strSql);
-        while (dtst.next()) {
-            return dtst.getString(1);
+            ResultSet dtst = Global.selectDataNoParams(strSql);
+            while (dtst.next()) {
+                return dtst.getString(1);
+            }
+            return "";
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return "";
+    }
+
+    public static String get_PreRpt_SQL(long rptID) throws SQLException {
+        try {
+            String strSql = "SELECT pre_rpt_sql_query "
+                    + "FROM rpt.rpt_reports WHERE report_id = " + String.valueOf(rptID);
+
+            ResultSet dtst = Global.selectDataNoParams(strSql);
+            while (dtst.next()) {
+                return dtst.getString(1);
+            }
+            return "";
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return "";
+    }
+
+    public static String get_PstRpt_SQL(long rptID) throws SQLException {
+        try {
+            String strSql = "SELECT pst_rpt_sql_query "
+                    + "FROM rpt.rpt_reports WHERE report_id = " + String.valueOf(rptID);
+
+            ResultSet dtst = Global.selectDataNoParams(strSql);
+            while (dtst.next()) {
+                return dtst.getString(1);
+            }
+            return "";
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
         }
         return "";
     }
@@ -777,40 +940,58 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
     public static void updateRptRn(long rptrnid, String statustxt, int statusprcnt) {
         //String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE rpt.rpt_report_runs SET "
-                + "run_status_txt = '" + statustxt.replace("'", "''")
-                + "', run_status_prct = " + String.valueOf(statusprcnt)
-                + " WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE rpt.rpt_report_runs SET "
+                    + "run_status_txt = '" + statustxt.replace("'", "''")
+                    + "', run_status_prct = " + String.valueOf(statusprcnt)
+                    + " WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
+            Global.updateDataNoParams(updtSQL);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updateRptRnActvTme(long rptrnid, String lstAtvTme) {
         //String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE rpt.rpt_report_runs SET "
-                + "last_actv_date_tme = '" + lstAtvTme.replace("'", "''")
-                + "' WHERE (rpt_run_id = " + rptrnid + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE rpt.rpt_report_runs SET "
+                    + "last_actv_date_tme = '" + lstAtvTme.replace("'", "''")
+                    + "' WHERE (rpt_run_id = " + rptrnid + ")";
+            Global.updateDataNoParams(updtSQL);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updateRptRnOutpt(long rptrnid, String outputTxt) {
         //String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE rpt.rpt_report_runs SET "
-                + "rpt_run_output = '" + outputTxt.replace("'", "''")
-                + "' WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE rpt.rpt_report_runs SET "
+                    + "rpt_run_output = '" + outputTxt.replace("'", "''")
+                    + "' WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
+            Global.updateDataNoParams(updtSQL);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updateRptRnOutptUsd(long rptrnid, String outputUsd) {
         //String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE rpt.rpt_report_runs SET "
-                + "output_used = '" + outputUsd.replace("'", "''")
-                + "' WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE rpt.rpt_report_runs SET "
+                    + "output_used = '" + outputUsd.replace("'", "''")
+                    + "' WHERE (rpt_run_id = " + String.valueOf(rptrnid) + ")";
+            Global.updateDataNoParams(updtSQL);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static int getLovID(String lovName) {
@@ -824,6 +1005,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -840,6 +1023,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -854,6 +1039,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -870,6 +1057,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -885,6 +1074,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -898,6 +1089,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -913,6 +1106,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -926,6 +1121,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -952,11 +1149,13 @@ public class Global {
             return res;
         } catch (SQLException ex) {
             return res;
+        } catch (Exception ex) {
+            return res;
         }
     }
 
     private static boolean mustColBeGrpd(String colNo, String[] colsToGrp) {
-        for (int i = 0; i < colsToGrp.length; i++) {
+        for (int i = 0; i < Array.getLength(colsToGrp); i++) {
             if (colNo.equals(colsToGrp[i])) {
                 return true;
             }
@@ -965,7 +1164,7 @@ public class Global {
     }
 
     private static boolean mustColBeCntd(String colNo, String[] colsToCnt) {
-        for (int i = 0; i < colsToCnt.length; i++) {
+        for (int i = 0; i < Array.getLength(colsToCnt); i++) {
             if (colNo.equals(colsToCnt[i])) {
                 return true;
             }
@@ -974,7 +1173,7 @@ public class Global {
     }
 
     private static boolean mustColBeSumd(String colNo, String[] colsToSum) {
-        for (int i = 0; i < colsToSum.length; i++) {
+        for (int i = 0; i < Array.getLength(colsToSum); i++) {
             if (colNo.equals(colsToSum[i])) {
                 return true;
             }
@@ -983,7 +1182,7 @@ public class Global {
     }
 
     private static boolean mustColBeAvrgd(String colNo, String[] colsToAvrg) {
-        for (int i = 0; i < colsToAvrg.length; i++) {
+        for (int i = 0; i < Array.getLength(colsToAvrg); i++) {
             if (colNo.equals(colsToAvrg[i])) {
                 return true;
             }
@@ -992,7 +1191,7 @@ public class Global {
     }
 
     private static boolean mustColBeFrmtd(String colNo, String[] colsToFrmt) {
-        for (int i = 0; i < colsToFrmt.length; i++) {
+        for (int i = 0; i < Array.getLength(colsToFrmt); i++) {
             if (colNo.equals(colsToFrmt[i])) {
                 return true;
             }
@@ -1069,6 +1268,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -1091,6 +1292,8 @@ public class Global {
             return fnl_str;
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -1110,6 +1313,8 @@ public class Global {
             return fnl_str;
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -1124,6 +1329,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -1140,6 +1347,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -1153,6 +1362,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -1168,6 +1379,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -1180,6 +1393,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -1197,6 +1412,8 @@ public class Global {
             return res;
         } catch (SQLException ex) {
             return res;
+        } catch (Exception ex) {
+            return res;
         }
     }
 
@@ -1213,6 +1430,8 @@ public class Global {
             return res;
         } catch (SQLException ex) {
             return res;
+        } catch (Exception ex) {
+            return res;
         }
     }
 
@@ -1228,6 +1447,8 @@ public class Global {
             }
             return res;
         } catch (SQLException ex) {
+            return res;
+        } catch (Exception ex) {
             return res;
         }
     }
@@ -1285,12 +1506,20 @@ public class Global {
 
     public static void updatePrcsRnnr(long rnnrID, String lstActvTm, String stats) {
         //String dateStr = Global.getDB_Date_time();
-        String insSQL = "UPDATE rpt.rpt_prcss_rnnrs SET "
-                + "rnnr_lst_actv_dtetme ='" + lstActvTm.replace("'", " ''")
-                + "', last_update_by=-1, last_update_date='" + lstActvTm
-                + "', rnnr_status='" + stats.replace("'", "''")
-                + "' WHERE prcss_rnnr_id = " + String.valueOf(rnnrID);
-        Global.updateDataNoParams(insSQL);
+        try {
+            String insSQL = "UPDATE rpt.rpt_prcss_rnnrs SET "
+                    + "rnnr_lst_actv_dtetme ='" + lstActvTm.replace("'", " ''")
+                    + "', last_update_by=-1, last_update_date='" + lstActvTm
+                    + "', rnnr_status='" + stats.replace("'", "''")
+                    + "' WHERE prcss_rnnr_id = " + String.valueOf(rnnrID);
+            Global.updateDataNoParams(insSQL);
+        } catch (SQLException ex) {
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            Global.writeToLog();
+        } catch (Exception ex) {
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            Global.writeToLog();
+        }
     }
 
     public static boolean isRunnrRnng(String rnnrNm) {
@@ -1306,6 +1535,8 @@ public class Global {
             }
             return false;
         } catch (SQLException ex) {
+            return false;
+        } catch (Exception ex) {
             return false;
         }
     }
@@ -1323,6 +1554,8 @@ public class Global {
             return false;
         } catch (SQLException ex) {
             return false;
+        } catch (Exception ex) {
+            return false;
         }
     }
 
@@ -1332,7 +1565,14 @@ public class Global {
                 + "WHERE report_set_id = " + rptID + "";
 
         //Global.mnFrm.roles_SQL = strSql;
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1342,38 +1582,65 @@ public class Global {
                 + "column_hdr_names, delimiter_col_vals, delimiter_row_vals, "
                 + "grp_order, group_id FROM rpt.rpt_det_rpt_grps WHERE report_id = " + rptID
                 + " ORDER BY grp_order, group_id";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static void updatePrcsRnnrCmd(String rnnrNm, String cmdStr, long uid) {
-        String dateStr = Global.getDB_Date_time();
-        String insSQL = "UPDATE rpt.rpt_prcss_rnnrs SET "
-                + "shld_rnnr_stop ='" + cmdStr.replace("'", " ''")
-                + "', last_update_by=" + uid + ", last_update_date='" + dateStr
-                + "' WHERE rnnr_name = '" + rnnrNm.replace("'", "''") + "'";
-        Global.insertDataNoParams(insSQL);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String insSQL = "UPDATE rpt.rpt_prcss_rnnrs SET "
+                    + "shld_rnnr_stop ='" + cmdStr.replace("'", " ''")
+                    + "', last_update_by=" + uid + ", last_update_date='" + dateStr
+                    + "' WHERE rnnr_name = '" + rnnrNm.replace("'", "''") + "'";
+            Global.insertDataNoParams(insSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updateRptRnStopCmd(long rptrnid, String cmdStr) {
         //String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE rpt.rpt_report_runs SET "
-                + "shld_run_stop = '" + cmdStr.replace("'", "''")
-                + "' WHERE (rpt_run_id = " + rptrnid + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE rpt.rpt_report_runs SET "
+                    + "shld_run_stop = '" + cmdStr.replace("'", "''")
+                    + "' WHERE (rpt_run_id = " + rptrnid + ")";
+            Global.updateDataNoParams(updtSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static ResultSet get_UsrRunsNtRnng() {
-        String selSQL = "SELECT MIN(a.rpt_run_id), a.report_id, a.run_by"
-                + "FROM rpt.rpt_report_runs a "
-                + "WHERE a.is_this_from_schdler = '0' and a.run_status_txt != 'Completed!'"
+        String selSQL = "SELECT MIN(a.rpt_run_id), a.report_id, a.run_by "
+                + "FROM rpt.rpt_report_runs a, rpt.rpt_reports b "
+                + "WHERE a.report_id = b.report_id and a.is_this_from_schdler = '0' and a.run_status_txt != 'Completed!'"
                 + " and a.run_status_txt != 'Error!'"
                 + " and a.shld_run_stop = '0' "
                 + "and a.run_status_prct< 100 and a.last_actv_date_tme != ''"
                 + " and age(now(), to_timestamp(a.last_actv_date_tme, 'YYYY-MM-DD HH24:MI:SS'))"
                 + "> interval '50 second'"
                 + " GROUP BY a.report_id, a.run_by ORDER BY 1 ASC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+        //and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1387,51 +1654,77 @@ public class Global {
                 + "and age(now(), to_timestamp(a.last_actv_date_tme, 'YYYY-MM-DD HH24:MI:SS')) "
                 + "> interval '50 second' "
                 + "and a.report_id IN (SELECT a.report_id FROM rpt.rpt_run_schdules a, rpt.rpt_reports b "
-                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and(CASE WHEN run_at_spcfd_hour = '0' and age(now() "
+                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and (CASE WHEN run_at_spcfd_hour = '0' and age(now() "
                 + ", to_timestamp(to_char(now(),'YYYY-MM-DD')|| ' ' ||  "
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS' "
                 + "))>= interval '1 second' THEN 1  "
                 + "WHEN run_at_spcfd_hour = '1' and to_char(now(), 'HH24:00:00') = to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:00:00') THEN 1  ELSE 0 END) =1) "
                 + "GROUP BY a.report_id, a.run_by ORDER BY 1 ASC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+        //and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static ResultSet get_SchdldAlertsNtRnng() {
+        ///*a.is_this_from_schdler = '1' and*/ 
         String selSQL = "SELECT MIN(a.rpt_run_id), a.report_id, a.run_by "
                 + "FROM rpt.rpt_report_runs a "
-                + "WHERE /*a.is_this_from_schdler = '1' and*/ a.alert_id > 0 and a.run_status_txt != 'Completed!' "
+                + "WHERE a.alert_id > 0 and a.run_status_txt != 'Completed!' "
                 + "and a.run_status_txt != 'Error!' "
                 + "and a.shld_run_stop = '0' "
                 + "and a.run_status_prct< 100 and a.last_actv_date_tme != '' "
                 + "and age(now(), to_timestamp(a.last_actv_date_tme, 'YYYY-MM-DD HH24:MI:SS')) > interval '50 second' "
                 + "and a.report_id IN (SELECT a.report_id FROM alrt.alrt_alerts a, rpt.rpt_reports b "
-                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and(CASE WHEN run_at_spcfd_hour = '0' "
+                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and (CASE WHEN run_at_spcfd_hour = '0' "
                 + " and age(now(), to_timestamp(to_char(now(),'YYYY-MM-DD')|| ' ' || "
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS'))>= interval '1 second' THEN 1 "
                 + "WHEN run_at_spcfd_hour = '1' and chartoint(to_char(now(),'HH24')) >= chartoint(to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24')) "
                 + "and chartoint(to_char(now(),'HH24'))< end_hour THEN 1 ELSE 0 END) =1) "
                 + "GROUP BY a.report_id, a.run_by ORDER BY 1 ASC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+//and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static ResultSet get_UserAlertsNtRnng() {
+        ///*a.is_this_from_schdler = '1' and*/ 
         String selSQL = "SELECT MIN(a.rpt_run_id), a.report_id, a.run_by "
                 + "FROM rpt.rpt_report_runs a "
-                + "WHERE /*a.is_this_from_schdler = '1' and*/ a.alert_id > 0 and a.run_status_txt != 'Completed!' "
+                + "WHERE a.alert_id > 0 and a.run_status_txt != 'Completed!' "
                 + "and a.run_status_txt != 'Error!' "
                 + "and a.shld_run_stop = '0' "
                 + "and a.run_status_prct< 100 and a.last_actv_date_tme != '' "
                 + "and age(now(), to_timestamp(a.last_actv_date_tme, 'YYYY-MM-DD HH24:MI:SS')) > interval '50 second' "
                 + "and a.report_id NOT IN(SELECT  a.report_id FROM alrt.alrt_alerts a, rpt.rpt_reports b "
-                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and(CASE WHEN run_at_spcfd_hour = '0' "
+                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and (CASE WHEN run_at_spcfd_hour = '0' "
                 + "and age(now(), to_timestamp(to_char(now(),'YYYY-MM-DD')|| ' ' || "
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS'))>= interval '1 second' THEN 1 "
                 + "WHEN run_at_spcfd_hour = '1' and chartoint(to_char(now(),'HH24')) >= chartoint(to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24')) "
                 + "and chartoint(to_char(now(),'HH24'))<end_hour THEN 1 ELSE 0 END) =1) "
                 + "GROUP BY a.report_id, a.run_by ORDER BY 1 ASC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+//and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1439,12 +1732,20 @@ public class Global {
         String selSQL = "SELECT a.schedule_id, a.report_id, b.report_name, a.start_dte_tme, "
                 + "a.repeat_every, trim(lower(trim(both '(s)' from a.repeat_uom))) uom, a.created_by "
                 + "FROM rpt.rpt_run_schdules a, rpt.rpt_reports b "
-                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and(CASE WHEN run_at_spcfd_hour = '0' "
+                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and (CASE WHEN run_at_spcfd_hour = '0' "
                 + "and age(now(), to_timestamp(to_char(now(),'YYYY-MM-DD')|| ' ' || "
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS'))>= interval '1 second' THEN 1 "
                 + "WHEN run_at_spcfd_hour = '1' and to_char(now(),'HH24:00:00')=to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:00:00') THEN 1 ELSE 0 END) =1"
                 + " ORDER BY a.schedule_id DESC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+//and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1453,13 +1754,21 @@ public class Global {
                 + "a.start_dte_tme, a.repeat_every, trim(lower(trim(both '(s)' from a.repeat_uom))) uom, "
                 + "a.created_by, a.to_mail_num_list_mnl, a.cc_mail_num_list_mnl, a.bcc_mail_num_list_mnl, "
                 + "a.msg_sbjct_mnl, a.alert_msg_body_mnl, a.attchment_urls, a.alert_type"
-                + ", a.end_hour FROM alrt.alrt_alerts a, rpt.rpt_reports b "
-                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and(CASE WHEN run_at_spcfd_hour = '0' "
+                + ", a.end_hour, a.alert_name FROM alrt.alrt_alerts a, rpt.rpt_reports b "
+                + "WHERE a.report_id = b.report_id and a.repeat_every > 0 and (CASE WHEN run_at_spcfd_hour = '0' "
                 + "and age(now(), to_timestamp(to_char(now(),'YYYY-MM-DD')|| ' ' || "
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS'))>= interval '1 second' THEN 1 "
                 + "WHEN run_at_spcfd_hour = '1' and to_char(now(),'HH24:00:00')=to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:00:00') THEN 1 ELSE 0 END) =1 "
                 + "ORDER BY a.alert_id DESC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+//and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1474,7 +1783,15 @@ public class Global {
                 + "to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS'))>= interval '1 second' THEN 1 "
                 + "WHEN run_at_spcfd_hour = '1' and to_char(now(),'HH24:00:00')=to_char(to_timestamp(start_dte_tme, 'YYYY-MM-DD HH24:MI:SS'),'HH24:00:00') THEN 1 ELSE 0 END) =1 "
                 + "and a.report_id = " + String.valueOf(rptID) + " ORDER BY a.alert_id DESC";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+//and rpt.get_rnnr_file_name(b.process_runner) ilike '%.jar%' 
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1488,6 +1805,8 @@ public class Global {
             }
             return 0;
         } catch (SQLException ex) {
+            return 0;
+        } catch (Exception ex) {
             return 0;
         }
     }
@@ -1514,6 +1833,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -1522,7 +1843,15 @@ public class Global {
                 + "FROM rpt.rpt_run_schdule_params a, rpt.rpt_report_parameters b "
                 + "WHERE a.parameter_id = b.parameter_id and a.schedule_id = " + schdlID
                 + " ORDER BY a.parameter_id";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -1531,64 +1860,115 @@ public class Global {
                 + "FROM rpt.rpt_run_schdule_params a, rpt.rpt_report_parameters b "
                 + "WHERE a.parameter_id = b.parameter_id and a.alert_id = " + alertID
                 + " ORDER BY a.parameter_id";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
+    }
+
+    public static String get_SchdldAlrtParamVal(long alrtID, long paramID) {
+        try {
+            String sqlStr = "SELECT a.parameter_value "
+                    + "FROM rpt.rpt_run_schdule_params a, rpt.rpt_report_parameters b "
+                    + "WHERE a.parameter_id = " + paramID + " and a.alert_id=" + alrtID;
+            ResultSet dtst = Global.selectDataNoParams(sqlStr);
+            while (dtst.next()) {
+                return dtst.getString(1);
+            }
+            return "";
+        } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
+            return "";
+        }
     }
 
     public static ResultSet get_RptParams(long rptID) {
         String selSQL = "SELECT a.parameter_id, a.parameter_name, a.paramtr_rprstn_nm_in_query, a.default_value "
                 + "FROM rpt.rpt_report_parameters a WHERE a.report_id = " + rptID + " ORDER BY a.parameter_id";
-        ResultSet dtst = Global.selectDataNoParams(selSQL);
+
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static void createSchdldRptRn(long runBy, String runDate,
             long rptID, String paramIDs, String paramVals,
             String outptUsd, String orntUsd, int alertID, long msgSentID) {
-        String insSQL = "INSERT INTO rpt.rpt_report_runs("
-                + "run_by, run_date, rpt_run_output, run_status_txt, "
-                + "run_status_prct, report_id, rpt_rn_param_ids, rpt_rn_param_vals, "
-                + "output_used, orntn_used, last_actv_date_tme, is_this_from_schdler, alert_id, msg_sent_id) "
-                + "VALUES (" + runBy + ", '" + runDate
-                + "', '', 'Not Started!', 0, " + rptID + ", '" + paramIDs.replace("'", "''")
-                + "', '" + paramVals.replace("'", "''")
-                + "', '" + outptUsd.replace("'", "''")
-                + "', '" + orntUsd.replace("'", "''")
-                + "', '" + runDate + "', '1'," + alertID + "," + msgSentID + ")";
-        Global.insertDataNoParams(insSQL);
+        try {
+            String insSQL = "INSERT INTO rpt.rpt_report_runs("
+                    + "run_by, run_date, rpt_run_output, run_status_txt, "
+                    + "run_status_prct, report_id, rpt_rn_param_ids, rpt_rn_param_vals, "
+                    + "output_used, orntn_used, last_actv_date_tme, is_this_from_schdler, alert_id, msg_sent_id) "
+                    + "VALUES (" + runBy + ", '" + runDate
+                    + "', '', 'Not Started!', 0, " + rptID + ", '" + paramIDs.replace("'", "''")
+                    + "', '" + paramVals.replace("'", "''")
+                    + "', '" + outptUsd.replace("'", "''")
+                    + "', '" + orntUsd.replace("'", "''")
+                    + "', '" + runDate + "', '1'," + alertID + "," + msgSentID + ")";
+            Global.insertDataNoParams(insSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void createAlertMsgSent(long msgSntID, String toList,
             String ccLst, String msgBdy, String dteSent,
             String sbjct, long rptID, String bccLst,
             long prsnID, long cstmrSupID, int alertID, String attchMns, String msg_type) {
-        String runDate = Global.getDB_Date_time();
-        String insSQL = "INSERT INTO alrt.alrt_msgs_sent("
-                + "msg_sent_id, to_list, cc_list, msg_body, date_sent, msg_sbjct, "
-                + "report_id, bcc_list, person_id, cstmr_spplr_id, created_by, creation_date, "
-                + "alert_id, sending_status, err_msg, attch_urls, msg_type) "
-                + "VALUES (" + msgSntID + ", '" + toList.replace("'", "''")
-                + "', '" + ccLst.replace("'", "''")
-                + "', '" + msgBdy.replace("'", "''")
-                + "', '" + runDate.replace("'", "''")
-                + "', '" + sbjct.replace("'", "''")
-                + "', " + rptID
-                + ", '" + bccLst.replace("'", "''")
-                + "', " + prsnID
-                + ", " + cstmrSupID
-                + ", " + Global.rnUser_ID
-                + ", '" + runDate.replace("'", "''")
-                + "', " + alertID + ",'0','','" + attchMns.replace("'", "''") + "','" + msg_type.replace("'", "''") + "')";
-        Global.insertDataNoParams(insSQL);
+        try {
+            String runDate = Global.getDB_Date_time();
+            String insSQL = "INSERT INTO alrt.alrt_msgs_sent("
+                    + "msg_sent_id, to_list, cc_list, msg_body, date_sent, msg_sbjct, "
+                    + "report_id, bcc_list, person_id, cstmr_spplr_id, created_by, creation_date, "
+                    + "alert_id, sending_status, err_msg, attch_urls, msg_type) "
+                    + "VALUES (" + msgSntID + ", '" + toList.replace("'", "''")
+                    + "', '" + ccLst.replace("'", "''")
+                    + "', '" + msgBdy.replace("'", "''")
+                    + "', '" + runDate.replace("'", "''")
+                    + "', '" + sbjct.replace("'", "''")
+                    + "', " + rptID
+                    + ", '" + bccLst.replace("'", "''")
+                    + "', " + prsnID
+                    + ", " + cstmrSupID
+                    + ", " + Global.rnUser_ID
+                    + ", '" + runDate.replace("'", "''")
+                    + "', " + alertID + ",'0','','" + attchMns.replace("'", "''") + "','" + msg_type.replace("'", "''") + "')";
+            Global.insertDataNoParams(insSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updateAlertMsgSent(long msgSntID, String dteSent,
             String sentStatus, String errMsg) {
-        //String runDate = Global.getDB_Date_time();
-        String updateSQL = "UPDATE alrt.alrt_msgs_sent SET date_sent ='" + dteSent.replace("'", " ''")
-                + "', sending_status='" + sentStatus + "', err_msg='" + errMsg + "' "
-                + "WHERE msg_sent_id = " + msgSntID + "";
-        Global.updateDataNoParams(updateSQL);
+        try {
+            //String runDate = Global.getDB_Date_time();
+            String updateSQL = "UPDATE alrt.alrt_msgs_sent SET date_sent ='" + dteSent.replace("'", " ''")
+                    + "', sending_status='" + sentStatus + "', err_msg='" + errMsg + "' "
+                    + "WHERE msg_sent_id = " + msgSntID + "";
+            Global.updateDataNoParams(updateSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static boolean doesLstRnTmExcdIntvl(long rptID, String intrvl, long rn_ID) {
@@ -1609,17 +1989,49 @@ public class Global {
             return res;
         } catch (SQLException ex) {
             return res;
+        } catch (Exception ex) {
+            return res;
+        }
+    }
+
+    public static boolean doesLstAlrtTmExcdIntvl(long rptID, String intrvl, long rn_ID, long alert_id) {
+        boolean res = true;
+        try {
+            String sqlStr = "select age(now(), to_timestamp(CASE WHEN last_actv_date_tme='' "
+                    + "THEN '2013-01-01 00:00:00' ELSE last_actv_date_tme END, 'YYYY-MM-DD HH24:MI:SS'))"
+                    + ">= interval '" + intrvl + "'  from rpt.rpt_report_runs where report_id = " + rptID
+                    + " and alert_id = " + alert_id
+                    + " and rpt_run_id != " + rn_ID + " and last_actv_date_tme !='' "
+                    + "ORDER BY last_actv_date_tme DESC, rpt_run_id DESC LIMIT 1 OFFSET 0";
+            //and is_this_from_schdler = '1' and is_this_from_schdler='1'
+            ResultSet dtst = Global.selectDataNoParams(sqlStr);
+            while (dtst.next()) {
+                res = dtst.getBoolean(1);
+                dtst.close();
+                return res;
+            }
+            return res;
+        } catch (SQLException ex) {
+            return res;
+        } catch (Exception ex) {
+            return res;
         }
     }
 
     public static void updateBulkMsgSent(long msgSntID, String dteSent,
             String sentStatus, String errMsg) {
-        //string runDate = Global.getDB_Date_time();
-        String updateSQL = "UPDATE alrt.bulk_msgs_sent SET "
-                + "date_sent='" + dteSent.replace("'", "''")
-                + "', sending_status='" + sentStatus + "', err_msg='" + errMsg + "' "
-                + "WHERE msg_sent_id = " + msgSntID + "";
-        Global.updateDataNoParams(updateSQL);
+        try {
+            //string runDate = Global.getDB_Date_time();
+            String updateSQL = "UPDATE alrt.bulk_msgs_sent SET "
+                    + "date_sent='" + dteSent.replace("'", "''")
+                    + "', sending_status='" + sentStatus + "', err_msg='" + errMsg + "' "
+                    + "WHERE msg_sent_id = " + msgSntID + "";
+            Global.updateDataNoParams(updateSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static boolean doesDteTmExcdIntvl(String intrvl, String dteTme) {
@@ -1635,6 +2047,8 @@ public class Global {
             }
             return res;
         } catch (SQLException ex) {
+            return res;
+        } catch (Exception ex) {
             return res;
         }
     }
@@ -1663,6 +2077,8 @@ public class Global {
             }
             return str;
         } catch (SQLException ex) {
+            return str;
+        } catch (Exception ex) {
             return str;
         }
     }
@@ -1723,7 +2139,7 @@ public class Global {
         } catch (UnknownHostException ex) {
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         }
@@ -1800,7 +2216,7 @@ public class Global {
         } catch (UnknownHostException ex) {
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         }
@@ -1848,7 +2264,9 @@ public class Global {
             ftpClient.connect(ftpserverurl, 21);
             boolean login = ftpClient.login(userName, password);
             ftpClient.setKeepAlive(false);
-            ftpClient.setPassiveNatWorkaround(true);
+            //ftpClient.setPassiveNatWorkaround(true);
+            //FTPClient.HostnameResolver hrslv = new FTPClient.HostnameResolver();
+            //ftpClient.setPassiveNatWorkaroundStrategy(hrslv);
             if (login) {
                 ftpClient.enterLocalPassiveMode();
                 ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
@@ -1866,7 +2284,7 @@ public class Global {
                 }
 
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\n\r\nUpload Response ==>\r\n" + responsTxt,
+                        "\r\n\r\nUpload Response ==>\r\n" + responsTxt,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 // logout the user, returned true if logout successfully  
                 boolean logout = ftpClient.logout();
@@ -1876,7 +2294,7 @@ public class Global {
             } else {
                 Global.errorLog += "Connection Failed..." + responsTxt;
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                        "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 Global.writeToLog();
             }
@@ -1884,13 +2302,13 @@ public class Global {
         } catch (SocketException e) {
             Global.errorLog += e.getMessage() + "\r\n" + Arrays.toString(e.getStackTrace());
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         } catch (IOException e) {
             Global.errorLog += e.getMessage() + "\r\n" + Arrays.toString(e.getStackTrace());
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         } finally {
@@ -1899,7 +2317,7 @@ public class Global {
             } catch (IOException e) {
                 Global.errorLog += e.getMessage() + "\r\n" + Arrays.toString(e.getStackTrace());
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                        "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 Global.writeToLog();
             } finally {
@@ -1940,7 +2358,7 @@ public class Global {
                     responsTxt += "Error in downloading file !::" + serverAppDirectory + PureFileName;
                 }
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\nDownload Response ==>\r\n" + responsTxt,
+                        "\r\nDownload Response ==>\r\n" + responsTxt,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 Global.writeToLog();
                 // logout the user, returned true if logout successfully  
@@ -1951,7 +2369,7 @@ public class Global {
             } else {
                 Global.errorLog += "Connection Failed..." + responsTxt;
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                        "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 Global.writeToLog();
             }
@@ -1959,13 +2377,13 @@ public class Global {
         } catch (SocketException e) {
             Global.errorLog += Arrays.toString(e.getStackTrace());
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         } catch (IOException e) {
             Global.errorLog += Arrays.toString(e.getStackTrace());
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             Global.writeToLog();
         } finally {
@@ -1974,7 +2392,7 @@ public class Global {
             } catch (IOException e) {
                 Global.errorLog += Arrays.toString(e.getStackTrace());
                 Global.updateLogMsg(Global.logMsgID,
-                        "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                        "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                         Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
                 Global.writeToLog();
             } finally {
@@ -1982,7 +2400,7 @@ public class Global {
             }
         }
         Global.updateLogMsg(Global.logMsgID,
-                "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + responsTxt,
+                "\r\n\r\nThe Program has Errored Out ==>\r\n" + responsTxt,
                 Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
         return responsTxt;
     }
@@ -2063,6 +2481,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -2158,7 +2578,7 @@ public class Global {
         } catch (Exception ex) {
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace());
             Global.updateLogMsg(Global.logMsgID,
-                    "\r\n\r\n\r\nThe Program has Errored Out ==>\r\n\r\n" + Global.errorLog,
+                    "\r\n\r\nThe Program has Errored Out ==>\r\n" + Global.errorLog,
                     Global.logTbl, Global.gnrlDateStr, Global.rnUser_ID);
             return inpt;
         }
@@ -2202,7 +2622,7 @@ public class Global {
 
     public static boolean CheckForInternetConnection() {
         try {
-            final URL url = new URL("http://www.google.com");
+            final URL url = new URL("https://cloud.rhomicom.com:10000");
             final URLConnection conn = url.openConnection();
             return true;
         } catch (IOException ex) {
@@ -2233,22 +2653,32 @@ public class Global {
 
     public static void createPssblValsForLov1(int lovID, String pssblVal,
             String pssblValDesc, String isEnbld, String allwd) {
-        String dateStr = Global.getDB_Date_time();
-        String sqlStr = "INSERT INTO gst.gen_stp_lov_values("
-                + "value_list_id, pssbl_value, pssbl_value_desc, "
-                + "created_by, creation_date, last_update_by, "
-                + "last_update_date, is_enabled, allowed_org_ids) "
-                + "VALUES (" + lovID + ", '" + pssblVal.replace("'", "''") + "', '"
-                + pssblValDesc.replace("'", "''")
-                + "', " + Global.rnUser_ID + ", '" + dateStr + "', " + Global.rnUser_ID
-                + ", '" + dateStr + "', '" + isEnbld.replace("'", "''")
-                + "', '" + allwd.replace("'", "''") + "')";
-        Global.insertDataNoParams(sqlStr);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String sqlStr = "INSERT INTO gst.gen_stp_lov_values("
+                    + "value_list_id, pssbl_value, pssbl_value_desc, "
+                    + "created_by, creation_date, last_update_by, "
+                    + "last_update_date, is_enabled, allowed_org_ids) "
+                    + "VALUES (" + lovID + ", '" + pssblVal.replace("'", "''") + "', '"
+                    + pssblValDesc.replace("'", "''")
+                    + "', " + Global.rnUser_ID + ", '" + dateStr + "', " + Global.rnUser_ID
+                    + ", '" + dateStr + "', '" + isEnbld.replace("'", "''")
+                    + "', '" + allwd.replace("'", "''") + "')";
+            Global.insertDataNoParams(sqlStr);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
-    public static boolean sendEmail(String toEml, String ccEml, String bccEml, String attchmnt, String sbjct, String bdyTxt, String[] errMsgs) {
+    public static boolean sendEmailOLD(String toEml, String ccEml, String bccEml, String attchmnt, String sbjct, String bdyTxt, String[] errMsgs) {
+        long msg_id = Global.getGnrlRecID("rpt.rpt_run_msgs", "process_typ", "process_id", "msg_id", "Process Run", Global.runID);
+        String dateStr = Global.getDB_Date_time();
+        String log_tbl = "rpt.rpt_run_msgs";
         try {
-            String selSql = "SELECT smtp_client, mail_user_name, mail_password, smtp_port FROM sec.sec_email_servers WHERE (is_default = 't')";
+            String selSql = "SELECT smtp_client, mail_user_name, mail_password, smtp_port, inhouse_smtp_ip FROM sec.sec_email_servers WHERE (is_default = 't')";
+
             ResultSet selDtSt = Global.selectDataNoParams(selSql);
             selDtSt.last();
             int m = selDtSt.getRow();
@@ -2257,6 +2687,7 @@ public class Global {
             String fromPswd = "";
             errMsgs[0] = "";
             int portNo = 0;
+            String inhouse_smtp_ip = "";
             if (m > 0) {
                 selDtSt.beforeFirst();
                 selDtSt.next();
@@ -2264,8 +2695,12 @@ public class Global {
                 fromEmlNm = selDtSt.getString(2);
                 fromPswd = selDtSt.getString(3);
                 portNo = selDtSt.getInt(4);
+                inhouse_smtp_ip = selDtSt.getString(5);
+                if (portNo == 25 && !inhouse_smtp_ip.equals("")) {
+                    smtpClnt = inhouse_smtp_ip;
+                }
             }
-            selDtSt.close();
+            //selDtSt.close();
             String fromPassword = Global.decrypt(fromPswd, Global.AppKey);
             // load your HTML email template
             if (bdyTxt.contains("<body") == false
@@ -2276,24 +2711,35 @@ public class Global {
                     || bdyTxt.contains("</html>") == false) {
                 bdyTxt = "<!DOCTYPE html><html lang=\"en\">" + bdyTxt + "</html>";
             }
+            Global.updateLogMsg(msg_id,
+                    "\r\nInside Send Mail!SUBJECT::" + sbjct + "\r\n", log_tbl, dateStr, Global.rnUser_ID);
             String htmlEmailTemplate = bdyTxt;
             // define you base URL to resolve relative resource locations
             URL url = new URL(Global.AppUrl);
             // create the email message
             ImageHtmlEmail email = new ImageHtmlEmail();
+            // Create the email message
             email.setDataSourceResolver(new DataSourceUrlResolver(url));
             email.setHostName(smtpClnt);
             email.setSmtpPort(portNo);
+            //email.setSSLCheckServerIdentity(false);
             email.setAuthentication(fromEmlNm, fromPassword);
+            //email.setAuthenticator(new DefaultAuthenticator(fromEmlNm, fromPassword));
             email.setDebug(true);
-            email.setStartTLSEnabled(true);
-            email.setStartTLSRequired(true);
-
-            String spltChars = "\\s*;\\s*";
+            if (!(portNo == 25 && !inhouse_smtp_ip.equals(""))) {
+                email.setStartTLSEnabled(true);
+                email.setStartTLSRequired(true);
+            }
+            String spltChars = "[,\\;]";
+            // "\\s*;\\s*";
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore Split toEmails Array:" + toEml + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             String[] toEmails = removeDplctChars(toEml).trim().split(spltChars);
             String[] ccEmails = removeDplctChars(ccEml).trim().split(spltChars);
             String[] bccEmails = removeDplctChars(bccEml).trim().split(spltChars);
             String[] attchMnts = removeDplctChars(attchmnt).trim().split(spltChars);
+            Global.updateLogMsg(msg_id,
+                    "\r\nInside Send Mail!:BODY:" + bdyTxt + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             for (int i = 0; i < attchMnts.length; i++) {
                 if (attchMnts[i].equals("")) {
                     continue;
@@ -2313,19 +2759,29 @@ public class Global {
             }
             int lovID = Global.getLovID("Email Addresses to Ignore");
             int toMailsAdded = 0;
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore Editing toEmails Array:" + Arrays.toString(toEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             for (int i = 0; i < toEmails.length; i++) {
+                if (toEmails[i].trim().length() <= 0) {
+                    toEmails[i] = "ToBeRemoved";
+                    continue;
+                }
                 if (Global.isEmailValid(toEmails[i], lovID)) {
                     if (Global.getEnbldPssblValID(toEmails[i], lovID) <= 0) {
                         //DO Nothing
                         toMailsAdded++;
                     } else {
-                        toEmails[i] = "ToBeRemoved";
                         errMsgs[0] += "Address:" + toEmails[i] + " blacklisted by you!\r\n";
+                        toEmails[i] = "ToBeRemoved";
                     }
                 } else {
                     errMsgs[0] += "Address:" + toEmails[i] + " is Invalid!\r\n";
+                    toEmails[i] = "ToBeRemoved";
                 }
             }
+
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore toMailsAdded:" + String.valueOf(toMailsAdded) + "::" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             if (toMailsAdded <= 0) {
                 return false;
             }
@@ -2340,15 +2796,20 @@ public class Global {
                 }
             }
             for (int i = 0; i < ccEmails.length; i++) {
+                if (ccEmails[i].trim().length() <= 0) {
+                    ccEmails[i] = "ToBeRemoved";
+                    continue;
+                }
                 if (Global.isEmailValid(ccEmails[i], lovID)) {
                     if (Global.getEnbldPssblValID(ccEmails[i], lovID) <= 0) {
                         //DO Nothing
                     } else {
-                        ccEmails[i] = "ToBeRemoved";
                         errMsgs[0] += "Address:" + ccEmails[i] + " blacklisted by you!\r\n";
+                        ccEmails[i] = "ToBeRemoved";
                     }
                 } else {
                     errMsgs[0] += "Address:" + ccEmails[i] + " is Invalid!\r\n";
+                    ccEmails[i] = "ToBeRemoved";
                 }
             }
             for (int i = 0; i < ccEmails.length; i++) {
@@ -2362,15 +2823,20 @@ public class Global {
                 }
             }
             for (int i = 0; i < bccEmails.length; i++) {
+                if (bccEmails[i].trim().length() <= 0) {
+                    bccEmails[i] = "ToBeRemoved";
+                    continue;
+                }
                 if (Global.isEmailValid(bccEmails[i], lovID)) {
                     if (Global.getEnbldPssblValID(bccEmails[i], lovID) <= 0) {
                         //DO Nothing
                     } else {
-                        bccEmails[i] = "ToBeRemoved";
                         errMsgs[0] += "Address:" + bccEmails[i] + " blacklisted by you!\r\n";
+                        bccEmails[i] = "ToBeRemoved";
                     }
                 } else {
                     errMsgs[0] += "Address:" + bccEmails[i] + " is Invalid!\r\n";
+                    bccEmails[i] = "ToBeRemoved";
                 }
             }
             for (int i = 0; i < bccEmails.length; i++) {
@@ -2390,41 +2856,384 @@ public class Global {
             // set the alternative message
             email.setTextMsg("Your email client does not support HTML messages");
             // send the email
+            Global.updateLogMsg(msg_id,
+                    "\r\nAfter Editing toEmails Array:" + Arrays.toString(toEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nccEmails Array:" + Arrays.toString(ccEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nbccEmails Array:" + Arrays.toString(bccEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore CheckForInternetConnection:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             if (Global.CheckForInternetConnection()) {
+                Global.updateLogMsg(msg_id,
+                        "\r\nBefore Send Mail:Internet Connection Test Successful::\r\n", log_tbl, dateStr, Global.rnUser_ID);
                 email.send();
                 return true;
             }
             errMsgs[0] += "No Internet Connection";
+            Global.updateLogMsg(msg_id,
+                    "\r\nAfter CheckForInternetConnection:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
             return false;
         } catch (SQLException ex) {
-            Global.errorLog = "\r\nFailed to send Email!\r\n" + ex.getMessage();
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-            errMsgs[0] += "Failed to send Email!\r\n" + ex.getMessage();
-            return false;
-        } catch (MalformedURLException ex) {
-            Global.errorLog = "\r\nFailed to send Email!\r\n" + ex.getMessage();
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            //return false;
+        } catch (MalformedURLException | EmailException ex) {
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-            errMsgs[0] += "Failed to send Email!\r\n" + ex.getMessage();
-            return false;
-        } catch (EmailException ex) {
-            Global.errorLog = "\r\nFailed to send Email!\r\n" + ex.getMessage();
-            Global.writeToLog();
-            errMsgs[0] += "Failed to send Email!\r\n" + ex.getMessage();
-            return false;
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            //return false;
         } catch (Exception ex) {
-            Global.errorLog = "\r\nFailed to send Email!\r\n" + ex.getMessage();
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
             Global.writeToLog();
-            errMsgs[0] += "Failed to send Email!\r\n" + ex.getMessage();
-            return false;
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            //return false;
+        } finally {
+            Global.updateLogMsg(msg_id,
+                    "\r\nAt Finally:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            //return false;
         }
+        return false;
     }
 
-    public static boolean sendSMS(String msgBody, String rcpntNo, String[] errMsg) {
+    public static boolean sendEmailNwOLD(String toEml, String ccEml, String bccEml, String attchmnt, String sbjct, String bdyTxt, String[] errMsgs) {
+        long msg_id = Global.getGnrlRecID("rpt.rpt_run_msgs", "process_typ", "process_id", "msg_id", "Process Run", Global.runID);
+        String dateStr = Global.getDB_Date_time();
+        String log_tbl = "rpt.rpt_run_msgs";
+        try {
+            String selSql = "SELECT smtp_client, mail_user_name, mail_password, smtp_port, inhouse_smtp_ip FROM sec.sec_email_servers WHERE (is_default = 't')";
+
+            ResultSet selDtSt = Global.selectDataNoParams(selSql);
+            selDtSt.last();
+            int m = selDtSt.getRow();
+            String smtpClnt = "";
+            String fromEmlNm = "";
+            String fromPswd = "";
+            errMsgs[0] = "";
+            int portNo = 0;
+            String inhouse_smtp_ip = "";
+            if (m > 0) {
+                selDtSt.beforeFirst();
+                selDtSt.next();
+                smtpClnt = selDtSt.getString(1);
+                fromEmlNm = selDtSt.getString(2);
+                fromPswd = selDtSt.getString(3);
+                portNo = selDtSt.getInt(4);
+                inhouse_smtp_ip = selDtSt.getString(5);
+                if (portNo == 25 && !inhouse_smtp_ip.equals("")) {
+                    smtpClnt = inhouse_smtp_ip;
+                }
+            }
+            //selDtSt.close();
+            String fromPassword = Global.decrypt(fromPswd, Global.AppKey);
+            // load your HTML email template
+            if (bdyTxt.contains("<body") == false
+                    || bdyTxt.contains("</body>") == false) {
+                bdyTxt = "<body>" + bdyTxt + "</body>";
+            }
+            if (bdyTxt.contains("<html") == false
+                    || bdyTxt.contains("</html>") == false) {
+                bdyTxt = "<!DOCTYPE html><html lang=\"en\">" + bdyTxt + "</html>";
+            }
+            Global.updateLogMsg(msg_id,
+                    "\r\nInside Send Mail!SUBJECT::" + sbjct + "\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            String htmlEmailTemplate = bdyTxt;
+            // define you base URL to resolve relative resource locations
+            URL url = new URL(Global.AppUrl);
+
+            String spltChars = "[,\\;]";
+            // "\\s*;\\s*";
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore Split toEmails Array:" + toEml + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            String[] toEmails = removeDplctChars(toEml).trim().split(spltChars);
+            String[] ccEmails = removeDplctChars(ccEml).trim().split(spltChars);
+            String[] bccEmails = removeDplctChars(bccEml).trim().split(spltChars);
+            String[] attchMnts = removeDplctChars(attchmnt).trim().split(spltChars);
+            Global.updateLogMsg(msg_id,
+                    "\r\nInside Send Mail!:BODY:" + bdyTxt + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+
+            int lovID = Global.getLovID("Email Addresses to Ignore");
+            int toMailsAdded = 0;
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore Editing toEmails Array:" + Arrays.toString(toEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            for (int i = 0; i < toEmails.length; i++) {
+                if (toEmails[i].trim().length() <= 0) {
+                    toEmails[i] = "ToBeRemoved";
+                    continue;
+                }
+                if (Global.isEmailValid(toEmails[i], lovID)) {
+                    if (Global.getEnbldPssblValID(toEmails[i], lovID) <= 0) {
+                        //DO Nothing
+                        toMailsAdded++;
+                    } else {
+                        errMsgs[0] += "Address:" + toEmails[i] + " blacklisted by you!\r\n";
+                        toEmails[i] = "ToBeRemoved";
+                    }
+                } else {
+                    errMsgs[0] += "Address:" + toEmails[i] + " is Invalid!\r\n";
+                    toEmails[i] = "ToBeRemoved";
+                }
+            }
+
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore toMailsAdded:" + String.valueOf(toMailsAdded) + "::" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            if (toMailsAdded <= 0) {
+                return false;
+            }
+            for (int i = 0; i < toEmails.length; i++) {
+                if (toEmails[i].equals("ToBeRemoved")) {
+                    toEmails = (String[]) ArrayUtils.remove(toEmails, i);
+                }
+            }
+
+            for (int i = 0; i < ccEmails.length; i++) {
+                if (ccEmails[i].trim().length() <= 0) {
+                    ccEmails[i] = "ToBeRemoved";
+                    continue;
+                }
+                if (Global.isEmailValid(ccEmails[i], lovID)) {
+                    if (Global.getEnbldPssblValID(ccEmails[i], lovID) <= 0) {
+                        //DO Nothing
+                    } else {
+                        errMsgs[0] += "Address:" + ccEmails[i] + " blacklisted by you!\r\n";
+                        ccEmails[i] = "ToBeRemoved";
+                    }
+                } else {
+                    errMsgs[0] += "Address:" + ccEmails[i] + " is Invalid!\r\n";
+                    ccEmails[i] = "ToBeRemoved";
+                }
+            }
+            for (int i = 0; i < ccEmails.length; i++) {
+                if (ccEmails[i].equals("ToBeRemoved")) {
+                    ccEmails = (String[]) ArrayUtils.remove(ccEmails, i);
+                }
+            }
+            for (int i = 0; i < bccEmails.length; i++) {
+                if (bccEmails[i].trim().length() <= 0) {
+                    bccEmails[i] = "ToBeRemoved";
+                    continue;
+                }
+                if (Global.isEmailValid(bccEmails[i], lovID)) {
+                    if (Global.getEnbldPssblValID(bccEmails[i], lovID) <= 0) {
+                        //DO Nothing
+                    } else {
+                        errMsgs[0] += "Address:" + bccEmails[i] + " blacklisted by you!\r\n";
+                        bccEmails[i] = "ToBeRemoved";
+                    }
+                } else {
+                    errMsgs[0] += "Address:" + bccEmails[i] + " is Invalid!\r\n";
+                    bccEmails[i] = "ToBeRemoved";
+                }
+            }
+            for (int i = 0; i < bccEmails.length; i++) {
+                if (bccEmails[i].equals("ToBeRemoved")) {
+                    bccEmails = (String[]) ArrayUtils.remove(bccEmails, i);
+                }
+            }
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            if (!(portNo == 25 && !inhouse_smtp_ip.equals(""))) {
+                props.put("mail.smtp.starttls.enable", "true");
+                //props.put("mail.smtp.ssl.trust", smtpClnt);
+                props.put("mail.smtp.ssl.trust", "*");
+            }
+            props.put("mail.smtp.host", smtpClnt);
+            props.put("mail.smtp.port", portNo);
+            final String username = fromEmlNm;
+            final String password = fromPassword;
+            // Get the Session object.
+            Session session = Session.getInstance(props,
+                    new javax.mail.Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(username, password);
+                }
+            });
+            // Create a default MimeMessage object.
+            Message message = new MimeMessage(session);
+
+            // Set From: header field of the header.
+            message.setFrom(
+                    new InternetAddress(fromEmlNm));
+
+            // Set To: header field of the header.
+            for (int i = 0; i < toEmails.length; i++) {
+                if (toEmails[i].equals("") == false) {
+                    message.addRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmails[i]));
+                    //message.addRecipient(Message.RecipientType.TO, new InternetAddress(toEmails[i]));
+                }
+            }
+            for (int i = 0; i < ccEmails.length; i++) {
+                if (ccEmails[i].equals("") == false) {
+                    message.addRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmails[i]));
+                    //message.addRecipient(Message.RecipientType.CC, new InternetAddress(ccEmails[i]));
+                }
+            }
+            for (int i = 0; i < bccEmails.length; i++) {
+                if (bccEmails[i].equals("") == false) {
+                    message.addRecipients(Message.RecipientType.BCC, InternetAddress.parse(bccEmails[i]));
+                    //message.addRecipient(Message.RecipientType.BCC, InternetAddress.parse(bccEmails[i]));
+                }
+            }
+            //message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+
+            // Set Subject: header field
+            message.setSubject(sbjct);
+
+            // Send the actual HTML message, as big as you like
+            //message.setContent(htmlEmailTemplate, "text/html");
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(htmlEmailTemplate);
+            Multipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+
+            for (int i = 0; i < attchMnts.length; i++) {
+                if (attchMnts[i].equals("")) {
+                    continue;
+                }
+                messageBodyPart = new MimeBodyPart();
+                DataSource source = new FileDataSource(attchMnts[i].replaceAll(" ", "%20"));
+                messageBodyPart.setDataHandler(new DataHandler(source));
+                messageBodyPart.setFileName(attchMnts[i].replaceAll(" ", "%20"));
+                multipart.addBodyPart(messageBodyPart);
+            }
+            message.setContent(multipart);
+
+            // Send message
+            // send the email
+            Global.updateLogMsg(msg_id,
+                    "\r\nAfter Editing toEmails Array:" + Arrays.toString(toEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nccEmails Array:" + Arrays.toString(ccEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nbccEmails Array:" + Arrays.toString(bccEmails) + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            Global.updateLogMsg(msg_id,
+                    "\r\nBefore CheckForInternetConnection:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            if (Global.CheckForInternetConnection()) {
+                Global.updateLogMsg(msg_id,
+                        "\r\nBefore Send Mail:Internet Connection Test Successful::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+                Transport.send(message);
+                return true;
+            }
+            errMsgs[0] += "No Internet Connection";
+            Global.updateLogMsg(msg_id,
+                    "\r\nAfter CheckForInternetConnection:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            return false;
+        } catch (MessagingException ex) {
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+        } catch (SQLException | MalformedURLException | EmailException ex) {
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            //return false;
+        } catch (Exception ex) {
+            Global.errorLog = "\r\nFailed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            Global.writeToLog();
+            errMsgs[0] += "Failed to send Email!::" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace());
+            //return false;
+        } finally {
+            Global.updateLogMsg(msg_id,
+                    "\r\nAt Finally:" + errMsgs[0] + "::\r\n", log_tbl, dateStr, Global.rnUser_ID);
+            //return false;
+        }
+        return false;
+    }
+
+    public static boolean sendEmail(String toEml, String ccEml, String bccEml, String attchmnt, String sbjct, String bdyTxt, String[] errMsgs) {
+        try {
+            if (!Global.CheckForInternetConnection()) {
+                errMsgs[0] = "No Internet Connection";
+                return false;
+            }
+            errMsgs[0] = "";
+            /*HttpClient httpclient;
+            HttpPost httppost;
+            ArrayList<NameValuePair> postParameters;
+            httpclient = new DefaultHttpClient();
+            httppost = new HttpPost("your login link");
+            postParameters = new ArrayList<NameValuePair>();
+            postParameters.add(new BasicNameValuePair("param1", "param1_value"));
+            postParameters.add(new BasicNameValuePair("param2", "param2_value"));
+            httpPost.setEntity(new UrlEncodedFormEntity(postParameters));
+            HttpResponse response = httpclient.execute(httppost);*/
+            HttpResponse response = null;
+            String responseTxt = "";
+            String succsTxt = "Sent Successfully";
+            String y = "\\|";
+
+            HttpClient client;
+            JSONObject postData;
+            StringWriter out;
+            JSONArray ja = new JSONArray();
+            String url = Global.RhoAPIUrl + "xchange/mailer/sendMail.php";
+            Global.errorLog += " API URL: " + url;
+            Global.writeToLog();
+            client = HttpClients.createDefault();
+            postData = new JSONObject();
+            responseTxt = "";
+            String inToken = Global.getGnrlRecNm("rpt.rpt_report_runs", "rpt_run_id", "run_date||run_by", Global.runID);
+
+            postData.put("inRunID", Global.runID);
+            postData.put("inToken", inToken);
+            postData.put("toAddresses", toEml);
+            postData.put("ccAddresses", ccEml);
+            postData.put("bccAddresses", bccEml);
+            postData.put("subjectDetails", sbjct);
+            postData.put("attachments", attchmnt);
+            postData.put("msgHtml", bdyTxt);
+            out = new StringWriter();
+            postData.writeJSONString(out);
+            String jsonText = out.toString();
+
+            StringEntity input = new StringEntity(jsonText);
+            input.setContentType("application/json");
+            HttpPost httppost = new HttpPost(url);
+            httppost.setEntity(input);
+            response = client.execute(httppost);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + response.getStatusLine().getStatusCode()
+                        + response.toString() + jsonText);
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (response.getEntity().getContent())));
+
+            String output;
+            while ((output = br.readLine()) != null) {
+                responseTxt += output;
+            }
+
+            if (responseTxt.toLowerCase().contains(succsTxt.toLowerCase())) {
+                errMsgs[0] = "Email Successful";
+                return true;
+            }
+            errMsgs[0] = responseTxt + jsonText;
+            return false;
+        } catch (IOException ex) {
+            errMsgs[0] += ex.getMessage();
+            return false;
+        } catch (RuntimeException ex) {
+            errMsgs[0] += ex.getMessage();
+            return false;
+
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    public static boolean sendSMSOLD(String msgBody, String rcpntNo, String[] errMsg) {
         try {
             if (!Global.CheckForInternetConnection()) {
                 errMsg[0] = "No Internet Connection";
                 return false;
             }
+            errMsg[0] = "";
             HttpResponse response = null;
             String responseTxt = "";
             msgBody = msgBody.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").replace("|", "/");
@@ -2434,9 +3243,9 @@ public class Global {
             HttpClient client;
             client = HttpClients.createDefault();
             List<NameValuePair> postData = new ArrayList<NameValuePair>();
-
             String url = "";// "http://txtconnect.co/api/send/";
-            ResultSet dtst = Global.selectDataNoParams("select sms_param1, sms_param2, sms_param3,"
+            ResultSet dtst;
+            dtst = Global.selectDataNoParams("select sms_param1, sms_param2, sms_param3,"
                     + "sms_param4, sms_param5, sms_param6,sms_param7, sms_param8, sms_param9"
                     + ", sms_param10 from sec.sec_email_servers where is_default = 't'");
             String[] nwMsgBdy;
@@ -2517,6 +3326,117 @@ public class Global {
         } catch (RuntimeException ex) {
             errMsg[0] += ex.getMessage();
             return false;
+
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    public static boolean sendSMS(String msgBody, String rcpntNo, String[] errMsg) {
+        try {
+            if (!Global.CheckForInternetConnection()) {
+                errMsg[0] = "No Internet Connection";
+                return false;
+            }
+            errMsg[0] = "";
+            HttpResponse response = null;
+            String responseTxt = "";
+            msgBody = msgBody.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").replace("|", "/");
+            String succsTxt = "";
+            String y = "\\|";
+
+            HttpClient client;
+            client = HttpClients.createDefault();
+            //List<NameValuePair> postData = new ArrayList<NameValuePair>();
+            JSONObject postData = new JSONObject();
+            StringWriter out = new StringWriter();
+            String jsonText = "";
+
+            String[] rcpntNos = rcpntNo.split(",");
+            JSONArray ja = new JSONArray();
+            for (int z = 0; z < rcpntNos.length; z++) {
+                ja.add(rcpntNos[z]);
+            }
+            String url = "";// "http://txtconnect.co/api/send/";
+            ResultSet dtst;
+            dtst = Global.selectDataNoParams("select sms_param1, sms_param2, sms_param3,"
+                    + "sms_param4, sms_param5, sms_param6,sms_param7, sms_param8, sms_param9"
+                    + ", sms_param10 from sec.sec_email_servers where is_default = 't'");
+            client = HttpClients.createDefault();
+            postData = new JSONObject();
+            String[] paramNms = new String[10];
+            String[] paramVals = new String[10];
+            String tmpStr = "";
+            responseTxt = "";
+            String[] tmpArry;
+            dtst.last();
+            int cntr = dtst.getRow();
+            if (cntr >= 1) {
+                for (int i = 0; i < 10; i++) {
+                    tmpStr = dtst.getString(i + 1).trim();
+                    tmpArry = tmpStr.split(y);
+                    if (tmpStr.equals("")
+                            || tmpArry.length != 2) {
+                        paramNms[i] = "";
+                        paramVals[i] = "";
+                    } else {
+                        paramNms[i] = tmpArry[0];
+                        paramVals[i] = tmpArry[1];
+                    }
+                    if (paramNms[i].equals("url")) {
+                        url = paramVals[i];
+                    } else if (paramNms[i].equals("success txt")) {
+                        succsTxt = paramVals[i];
+                    } else if (paramNms[i].equals("recipient")) {
+                        postData.put(paramNms[i], ja);
+                    } else if (!paramNms[i].equals("") && !paramVals[i].equals("")) {
+                        postData.put(paramNms[i], paramVals[i].replace("{:msg}", msgBody));
+                    }
+                }
+                out = new StringWriter();
+                postData.writeJSONString(out);
+                jsonText = out.toString();
+
+                StringEntity input = new StringEntity(jsonText);
+                input.setContentType("application/json");
+                HttpPost httppost = new HttpPost(url);
+                httppost.setEntity(input);
+                response = client.execute(httppost);
+                if (response.getStatusLine().getStatusCode() != 200) {
+                    throw new RuntimeException("Failed : HTTP error code : "
+                            + response.getStatusLine().getStatusCode()
+                            + response.toString() + jsonText);
+                }
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        (response.getEntity().getContent())));
+
+                String output;
+                while ((output = br.readLine()) != null) {
+                    responseTxt += output;
+                }
+            }
+            if (responseTxt.toLowerCase().contains(succsTxt.toLowerCase())) {
+                errMsg[0] = "SMS Successful";
+                return true;
+            }
+            errMsg[0] = responseTxt + jsonText;
+            return false;
+        } catch (SQLException ex) {
+            errMsg[0] += ex.getMessage();
+            return false;
+        } catch (IOException ex) {
+            errMsg[0] += ex.getMessage();
+            return false;
+        } catch (RuntimeException ex) {
+            errMsg[0] += ex.getMessage();
+            return false;
+
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
         return false;
     }
@@ -2531,7 +3451,16 @@ public class Global {
                 + ", " + Global.rnUser_ID + ", '" + dateStr
                 + "', " + Global.rnUser_ID + ", '" + dateStr
                 + "')";
-        Global.insertDataNoParams(insSQL);
+        try {
+            Global.insertDataNoParams(insSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static long getLogMsgID(String logTblNm, String procstyp, long procsID) {
@@ -2546,44 +3475,97 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
-    public static boolean isThereANActvActnPrcss(String prcsIDs, String prcsIntrvl) {
-        boolean res = true;
+    /*public static boolean isThereANActvActnPrcss(String prcsIDs, String prcsIntrvl) {
+        boolean res = false;
         try {
             String strSql = "SELECT age(now(), to_timestamp(last_active_time,'YYYY-MM-DD HH24:MI:SS')) <= interval '" + prcsIntrvl
                     + "' FROM accb.accb_running_prcses WHERE which_process_is_rnng IN (" + prcsIDs
                     + ") and age(now(), to_timestamp(last_active_time,'YYYY-MM-DD HH24:MI:SS')) <= interval '" + prcsIntrvl
                     + "'";
-
-            //Global.showMsg(strSql, 0);
             ResultSet dtst = Global.selectDataNoParams(strSql);
             while (dtst.next()) {
                 res = dtst.getBoolean(1);
                 dtst.close();
+                System.out.println("Process Running Result:" + String.valueOf(res) + ":::" + dtst.getString(1));
                 return res;
             }
             return res;
         } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+            return false;
+        } catch (Exception ex) {
             return false;
         }
     }
 
     public static void updtActnPrcss(int prcsID, int secondsAhead) {
-        String dtestr = Global.getDB_Date_time();
-        String strSql = "UPDATE accb.accb_running_prcses SET "
-                + "last_active_time = to_char(to_timestamp('" + dtestr + "'  ,'YYYY-MM-DD HH24:MI:SS') + interval '" + secondsAhead + " second'  ,'YYYY-MM-DD HH24:MI:SS') "
-                + "WHERE which_process_is_rnng = " + prcsID + " ";
-        Global.updateDataNoParams(strSql);
+        try {
+            String dtestr = Global.getDB_Date_time();
+            String strSql = "UPDATE accb.accb_running_prcses SET "
+                    + "last_active_time = to_char(to_timestamp('" + dtestr + "'  ,'YYYY-MM-DD HH24:MI:SS') + interval '" + secondsAhead + " second'  ,'YYYY-MM-DD HH24:MI:SS') "
+                    + "WHERE which_process_is_rnng = " + prcsID + " ";
+            Global.updateDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updtActnPrcss(int prcsID) {
-        String dtestr = Global.getDB_Date_time();
-        String strSql = "UPDATE accb.accb_running_prcses SET "
-                + "last_active_time ='" + dtestr + "'  "
-                + "WHERE which_process_is_rnng = " + prcsID + " ";
-        Global.updateDataNoParams(strSql);
+        try {
+            String dtestr = Global.getDB_Date_time();
+            String strSql = "UPDATE accb.accb_running_prcses SET "
+                    + "last_active_time ='" + dtestr + "'  "
+                    + "WHERE which_process_is_rnng = " + prcsID + " ";
+            //System.out.println(strSql);
+            Global.updateDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }*/
+    public static String isThereANActvPrcss(String prcsIDs) {
+        try {
+            String strSql = "SELECT is_process_rnng FROM accb.accb_running_prcses WHERE which_process_is_rnng IN (" + prcsIDs
+                    + ") and age(now(), to_timestamp(last_active_time,'YYYY-MM-DD HH24:MI:SS')) < interval '5 minutes'";
+            String res = "0";
+            ResultSet dtst = Global.selectDataNoParams(strSql);
+            while (dtst.next()) {
+                res = dtst.getString(1);
+                dtst.close();
+                System.out.println("Process Running Result:" + res + ":::" + dtst.getString(1));
+                return res;
+            }
+            return "0";
+        } catch (SQLException ex) {
+            System.out.println(ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+            return "0";
+        } catch (Exception ex) {
+            return "0";
+        }
+    }
+
+    public static void updateANActvPrcss(String prcsIDs, String status) {
+        try {
+            String strSql = "UPDATE accb.accb_running_prcses SET is_process_rnng='" + status.replace("'", "''")
+                    + "', last_active_time = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE which_process_is_rnng IN (" + prcsIDs
+                    + ")";
+            Global.updateDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static ResultSet get_All_Chrt_Det(int orgid) {
@@ -2591,7 +3573,17 @@ public class Global {
         strSql = "SELECT a.accnt_id, a.debit_balance , a.credit_balance , a.net_balance , "
                 + "to_char(to_timestamp(a.balance_date,'YYYY-MM-DD HH24:MI:SS'),'DD-Mon-YYYY HH24:MI:SS') bsldte "
                 + "FROM accb.accb_chart_of_accnts a WHERE a.org_id = " + orgid + " ORDER BY a.accnt_typ_id, a.report_line_no, a.accnt_num";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -2609,14 +3601,10 @@ public class Global {
             SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             SimpleDateFormat frmtr2 = new SimpleDateFormat("dd-MMM-yyyy");
             SimpleDateFormat frmtr3 = new SimpleDateFormat("dddd");
-            Calendar trnsDte = Calendar.getInstance();
-            trnsDte.setTime(frmtr.parse(trnsdate));
-            Calendar dte1 = Calendar.getInstance();
-            dte1.setTime(frmtr.parse(Global.getLtstPrdStrtDate()));
-            Calendar dte1Or = Calendar.getInstance();
-            dte1Or.setTime(frmtr.parse(Global.getLastPrdClseDate()));
-            Calendar dte2 = Calendar.getInstance();
-            dte2.setTime(frmtr.parse(Global.getLtstPrdEndDate()));
+            Date trnsDte = frmtr.parse(trnsdate);
+            Date dte1 = frmtr.parse(Global.getLtstPrdStrtDate());
+            Date dte1Or = frmtr.parse(Global.getLastPrdClseDate());
+            Date dte2 = frmtr.parse(Global.getLtstPrdEndDate());
 
             if (trnsDte.equals(dte1Or) || trnsDte.before(dte1Or)) {
                 outptMsg[0] += "Transaction Date cannot be On or Before " + frmtr.format(dte1Or);
@@ -2635,6 +3623,8 @@ public class Global {
             //Global.showMsg(Global.Org_iString.valueOf(d) + "-" + prdHdrID.ToString(), 0);
             if (prdHdrID > 0) {
                 //Global.showMsg(trnsDte.ToString("yyyy-MM-dd HH:mm:ss") + "-" + prdHdrID.ToString(), 0);
+                //System.out.println("trnsDte:" + String.valueOf(trnsDte));
+                //System.out.println(frmtr1.format(trnsDte));
                 if (Global.getTrnsDteOpenPrdLnID(prdHdrID, frmtr1.format(trnsDte)) < 0) {
                     outptMsg[0] += "Cannot use a Transaction Date (" + frmtr.format(trnsDte) + ") which does not exist in any OPEN period!";
                     return false;
@@ -2664,14 +3654,10 @@ public class Global {
             double amntLmt = Global.getAcntsBdgtdAmnt(actvBdgtID,
                     accntID, frmtr.format(trnsDte));
 
-            Calendar bdte1 = Calendar.getInstance();
-            bdte1.setTime(frmtr.parse(Global.getAcntsBdgtStrtDte(actvBdgtID, accntID, frmtr.format(trnsDte))));
-
-            Calendar bdte2 = Calendar.getInstance();
-            bdte2.setTime(frmtr.parse(Global.getAcntsBdgtEndDte(actvBdgtID, accntID, frmtr.format(trnsDte))));
+            Date bdte1 = frmtr.parse(Global.getAcntsBdgtStrtDte(actvBdgtID, accntID, frmtr.format(trnsDte)));
+            Date bdte2 = frmtr.parse(Global.getAcntsBdgtEndDte(actvBdgtID, accntID, frmtr.format(trnsDte)));
 
             double crntBals = Global.getTrnsSum(accntID, frmtr.format(bdte1), frmtr.format(bdte2), "1");
-
             String actn = Global.getAcntsBdgtLmtActn(actvBdgtID, accntID, trnsdate);
 
             if ((amnt + crntBals) > amntLmt) {
@@ -2689,8 +3675,13 @@ public class Global {
                 }
             }
             return true;
+        } catch (ParseException ex) {
+            outptMsg[0] += Arrays.toString(ex.getStackTrace()) + "\r\n" + ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace());
+            System.out.println(ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()));
+            return false;
         } catch (Exception ex) {
-            outptMsg[0] += Arrays.toString(ex.getStackTrace()) + "\r\n" + ex.getMessage();
+            outptMsg[0] += Arrays.toString(ex.getStackTrace()) + "\r\n" + ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace());
+            System.out.println(ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()));
             return false;
         }
     }
@@ -2705,6 +3696,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -2722,6 +3715,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -2736,6 +3731,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -2752,6 +3749,25 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
+    public static String getEnbldPssblValDesc1(int pssblValID) {
+        try {
+            String sqlStr = "SELECT pssbl_value_desc from gst.gen_stp_lov_values "
+                    + "where ((pssbl_value_id = " + pssblValID
+                    + ") AND (is_enabled='1'))";
+            ResultSet dtst = Global.selectDataNoParams(sqlStr);
+            while (dtst.next()) {
+                return dtst.getString(1);
+            }
+            return "";
+        } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -2779,6 +3795,8 @@ public class Global {
             return 0;
         } catch (SQLException ex) {
             return 0;
+        } catch (Exception ex) {
+            return 0;
         }
     }
 
@@ -2797,6 +3815,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -2812,6 +3832,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -2826,6 +3848,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -2851,6 +3875,8 @@ public class Global {
             return "0.00";
         } catch (SQLException ex) {
             return "0.00";
+        } catch (Exception ex) {
+            return "0.00";
         }
     }
 
@@ -2874,6 +3900,8 @@ public class Global {
             return 0.00;
         } catch (SQLException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -2896,6 +3924,8 @@ public class Global {
         } catch (ParseException ex) {
             return "None";
         } catch (SQLException ex) {
+            return "None";
+        } catch (Exception ex) {
             return "None";
         }
     }
@@ -2923,6 +3953,8 @@ public class Global {
             return nw;
         } catch (SQLException ex) {
             return nw;
+        } catch (Exception ex) {
+            return nw;
         }
     }
 
@@ -2949,6 +3981,8 @@ public class Global {
             return nw;
         } catch (SQLException ex) {
             return nw;
+        } catch (Exception ex) {
+            return nw;
         }
     }
 
@@ -2964,6 +3998,8 @@ public class Global {
             }
             return "01-Jan-1900 00:00:00";
         } catch (SQLException ex) {
+            return "01-Jan-1900 00:00:00";
+        } catch (Exception ex) {
             return "01-Jan-1900 00:00:00";
         }
     }
@@ -2992,6 +4028,8 @@ public class Global {
             return nw;
         } catch (SQLException ex) {
             return nw;
+        } catch (Exception ex) {
+            return nw;
         }
     }
 
@@ -3019,12 +4057,13 @@ public class Global {
             return nw;
         } catch (SQLException ex) {
             return nw;
+        } catch (Exception ex) {
+            return nw;
         }
     }
 
     public static ResultSet get_Batch_Trns(long batchID) {
-        String strSql = "";
-        strSql = "SELECT a.transctn_id, b.accnt_num, b.accnt_name, "
+        String strSql = "SELECT a.transctn_id, b.accnt_num, b.accnt_name, "
                 + "a.transaction_desc, a.dbt_amount, a.crdt_amount, "
                 + "to_char(to_timestamp(a.trnsctn_date,'YYYY-MM-DD HH24:MI:SS'),'DD-Mon-YYYY HH24:MI:SS'), a.func_cur_id, "
                 + "a.batch_id, a.accnt_id, a.net_amount, a.trns_status, a.entered_amnt, gst.get_pssbl_val(a.entered_amt_crncy_id), a.entered_amt_crncy_id, "
@@ -3032,8 +4071,18 @@ public class Global {
                 + "FROM accb.accb_trnsctn_details a LEFT OUTER JOIN "
                 + "accb.accb_chart_of_accnts b on a.accnt_id = b.accnt_id "
                 + "WHERE(a.batch_id = " + batchID + " and a.trns_status='0') ORDER BY a.transctn_id";
+        //System.out.println(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
 
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -3048,6 +4097,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -3064,6 +4115,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -3073,16 +4126,35 @@ public class Global {
                 + "accb.accb_chart_of_accnts b on a.accnt_id = b.accnt_id "
                 + "WHERE(a.batch_id = " + batchID + ") ORDER BY a.transctn_id";
 
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static void updateBatchStatus(long batchid) {
-        String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE accb.accb_trnsctn_batches "
-                + "SET batch_status='1', avlbl_for_postng='0', last_update_by=" + Global.rnUser_ID + ", last_update_date='" + dateStr
-                + "' WHERE batch_id = " + batchid;
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String updtSQL = "UPDATE accb.accb_trnsctn_batches "
+                    + "SET batch_status='1', avlbl_for_postng='0', last_update_by=" + Global.rnUser_ID + ", last_update_date='" + dateStr
+                    + "' WHERE batch_id = " + batchid;
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static ResultSet get_Batch_Trns_NoStatus(long batchID) {
@@ -3096,7 +4168,17 @@ public class Global {
                 + "WHERE(a.batch_id = " + batchID + ") ORDER BY a.transctn_id";
         //Global.errorLog = strSql;
         //Global.writeToLog();
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -3125,7 +4207,7 @@ public class Global {
                     + srcDocID + ", " + srcDocLnID + ", '" + trnsSrc + "')";
             Global.insertDataNoParams(insSQL);
         } catch (Exception ex) {
-
+            System.out.println("Error Creating Interface Line!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -3151,7 +4233,67 @@ public class Global {
                     + ", -1, '" + trnsSrc + "')";
             Global.insertDataNoParams(insSQL);
         } catch (Exception ex) {
+            System.out.println("Error Creating Interface Line!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+        }
+    }
 
+    public static void createMCFGLIntFcLn(int accntid, String trnsdesc, double dbtamnt,
+            String trnsdte, int crncyid, double crdtamnt, double netamnt, String srcDocTyp,
+            long srcDocID, long srcDocLnID, String dateStr, String trnsSrc) {
+        try {
+            if (accntid <= 0) {
+                return;
+            }
+            SimpleDateFormat frmtr = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
+            SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            trnsdte = frmtr1.format(frmtr.parse(trnsdte));
+            dateStr = frmtr1.format(frmtr.parse(dateStr));
+
+            String insSQL = "INSERT INTO mcf.mcf_gl_interface("
+                    + "            accnt_id, transaction_desc, dbt_amount, trnsctn_date, "
+                    + "            func_cur_id, created_by, creation_date, crdt_amount, last_update_by, "
+                    + "            last_update_date, net_amount, gl_batch_id, src_doc_typ, src_doc_id, "
+                    + "            src_doc_line_id, trns_ln_type, trns_source, entered_amnt, entered_amt_crncy_id, "
+                    + "            accnt_crncy_amnt, accnt_crncy_id, func_cur_exchng_rate, accnt_cur_exchng_rate) "
+                    + "VALUES (" + accntid + ", '" + trnsdesc.replace("'", "''") + "', " + dbtamnt
+                    + ", '" + trnsdte.replace("'", "''") + "', " + crncyid + ", " + Global.rnUser_ID
+                    + ", '" + dateStr + "', " + crdtamnt + ", "
+                    + Global.rnUser_ID + ", '" + dateStr + "', " + netamnt
+                    + ", -1, '" + srcDocTyp + "',-1,-1,'','" + trnsSrc + "'," + String.valueOf(Math.abs(netamnt)) + "," + crncyid
+                    + "," + String.valueOf(Math.abs(netamnt)) + "," + crncyid + ",1,1)";
+            Global.insertDataNoParams(insSQL);
+        } catch (Exception ex) {
+            System.out.println("Error Creating Interface Line!!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
+        }
+    }
+
+    public static void createVMSGLIntFcLn(int accntid, String trnsdesc, double dbtamnt,
+            String trnsdte, int crncyid, double crdtamnt, double netamnt, String srcDocTyp,
+            long srcDocID, long srcDocLnID, String dateStr, String trnsSrc) {
+        try {
+            if (accntid <= 0) {
+                return;
+            }
+            SimpleDateFormat frmtr = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
+            SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            trnsdte = frmtr1.format(frmtr.parse(trnsdte));
+            dateStr = frmtr1.format(frmtr.parse(dateStr));
+
+            String insSQL = "INSERT INTO vms.vms_gl_interface("
+                    + "            accnt_id, transaction_desc, dbt_amount, trnsctn_date, "
+                    + "            func_cur_id, created_by, creation_date, crdt_amount, last_update_by, "
+                    + "            last_update_date, net_amount, gl_batch_id, src_doc_typ, src_doc_id, "
+                    + "            src_doc_line_id, trns_ln_type, trns_source, entered_amnt, entered_amt_crncy_id, "
+                    + "            accnt_crncy_amnt, accnt_crncy_id, func_cur_exchng_rate, accnt_cur_exchng_rate) "
+                    + "VALUES (" + accntid + ", '" + trnsdesc.replace("'", "''") + "', " + dbtamnt
+                    + ", '" + trnsdte.replace("'", "''") + "', " + crncyid + ", " + Global.rnUser_ID
+                    + ", '" + dateStr + "', " + crdtamnt + ", "
+                    + Global.rnUser_ID + ", '" + dateStr + "', " + netamnt
+                    + ", -1, '" + srcDocTyp + "',-1,-1,'','" + trnsSrc + "'," + String.valueOf(Math.abs(netamnt)) + "," + crncyid
+                    + "," + String.valueOf(Math.abs(netamnt)) + "," + crncyid + ",1,1)";
+            Global.insertDataNoParams(insSQL);
+        } catch (Exception ex) {
+            System.out.println("Error Creating Interface Line!!\r\n" + ex.getMessage() + System.getProperty("line.separator") + Arrays.toString(ex.getStackTrace()));
         }
     }
 
@@ -3167,6 +4309,10 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (ClassNotFoundException ex) {
+            return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -3175,17 +4321,36 @@ public class Global {
                 + "crdt_amount = round(dbt_amount, 2) , net_amount = round(net_amount, 2) "
                 + "WHERE round(crdt_amount - round(crdt_amount, 2))!=0 "
                 + "or round(dbt_amount - round(dbt_amount, 2))!=0";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
 
         String strSql = "SELECT substring(a.trnsctn_date from 1 for 10), "
                 + "round(SUM(a.dbt_amount), 2), round(SUM(a.crdt_amount), 2) FROM " + intrfcTblNm
                 + " a, accb.accb_chart_of_accnts b WHERE(a.gl_batch_id <= 0 and a.accnt_id = b.accnt_id and b.org_id = " + orgID
                 + " and age(now(), to_timestamp(a.last_update_date,'YYYY-MM-DD HH24:MI:SS')) > interval '5 minute') "
-                + "GROUP BY substring(a.trnsctn_date from 1 for 10 "
+                + "GROUP BY substring(a.trnsctn_date from 1 for 10) "
                 + "HAVING SUM(a.dbt_amount) != SUM(a.crdt_amount) "
                 + "ORDER BY 1";
-        /**/
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        System.out.println(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -3198,14 +4363,24 @@ public class Global {
                 + "HAVING round(SUM(a.dbt_amount),2) != round(SUM(a.crdt_amount),2) "
                 + "ORDER BY 1";
 
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
     public static double get_Batch_DbtSum(long batchID) {
         double sumRes = 0.00;
         try {
-            String strSql = "SELECT SUM(a.dbt_amount)"
+            String strSql = "SELECT SUM(a.dbt_amount) "
                     + "FROM accb.accb_trnsctn_details a "
                     + "WHERE(a.batch_id = " + batchID + ")";
 
@@ -3215,6 +4390,8 @@ public class Global {
             }
             return sumRes;
         } catch (SQLException ex) {
+            return sumRes;
+        } catch (Exception ex) {
             return sumRes;
         }
     }
@@ -3222,7 +4399,7 @@ public class Global {
     public static double get_Batch_CrdtSum(long batchID) {
         double sumRes = 0.00;
         try {
-            String strSql = "SELECT SUM(a.crdt_amount)"
+            String strSql = "SELECT SUM(a.crdt_amount) "
                     + "FROM accb.accb_trnsctn_details a "
                     + "WHERE(a.batch_id = " + batchID + ")";
             ResultSet dtst = Global.selectDataNoParams(strSql);
@@ -3231,6 +4408,8 @@ public class Global {
             }
             return sumRes;
         } catch (SQLException ex) {
+            return sumRes;
+        } catch (Exception ex) {
             return sumRes;
         }
     }
@@ -3254,6 +4433,8 @@ public class Global {
         } catch (ParseException ex) {
             return false;
         } catch (SQLException ex) {
+            return false;
+        } catch (Exception ex) {
             return false;
         }
     }
@@ -3280,6 +4461,8 @@ public class Global {
             return sumRes;
         } catch (SQLException ex) {
             return sumRes;
+        } catch (Exception ex) {
+            return sumRes;
         }
     }
 
@@ -3287,11 +4470,22 @@ public class Global {
         String updtSQL = "UPDATE accb.accb_trnsctn_details "
                 + "SET dbt_amount = round(dbt_amount, 2), crdt_amount = round(crdt_amount, 2) "
                 + "WHERE dbt_amount != round(dbt_amount, 2) or crdt_amount != round(crdt_amount, 2)";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         try {
             Thread.sleep(2000);
+
         } catch (InterruptedException ex) {
-            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
         String selSQL = "select a.transctn_id, a.accnt_id, b.accnt_type, a.transaction_desc, a.trnsctn_date, "
                 + "a.dbt_amount, a.crdt_amount, a.net_amount"
@@ -3303,7 +4497,18 @@ public class Global {
                 + " and CASE WHEN b.accnt_type = 'A' or b.accnt_type ='EX' "
                 + "THEN(dbt_amount - crdt_amount) "
                 + "ELSE(crdt_amount - dbt_amount) END<> (net_amount)";
-        return Global.selectDataNoParams(selSQL);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return dtst;
     }
 
     public static ResultSet get_WrongBalncs(int orgID) {
@@ -3314,12 +4519,23 @@ public class Global {
                 + "to_char(to_timestamp(a.as_at_date ||' 23:59:00','YYYY-MM-DD HH24:MI:SS'),'DD-Mon-YYYY HH24:MI:SS') trns_date "
                 + "FROM accb.accb_accnt_daily_bals a, accb.accb_chart_of_accnts b "
                 + "where a.accnt_id = b.accnt_id and b.org_id = " + orgID + " and b.is_net_income != '1' and b.has_sub_ledgers != '1' "
-                + "and a.as_at_date = (SELECT MAX  (as_at_date) FROM accb.accb_accnt_daily_bals d where d.accnt_id = a.accnt_id)) tbl1 "
+                + "and a.as_at_date = (SELECT MAX(as_at_date) FROM accb.accb_accnt_daily_bals d where d.accnt_id = a.accnt_id)) tbl1 "
                 + "WHERE tbl1.nw_dbbt_diff != 0 or tbl1.nw_crdt_diff != 0 or tbl1.nw_net_diff != 0";
         //  and b.is_retained_earnings!='1'
         //Global.errorLog = "Wrong Balances SQL = " + selSQL;
         //Global.writeToLog();
-        return Global.selectDataNoParams(selSQL);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return dtst;
     }
 
     public static ResultSet get_WrongNetIncmBalncs(int orgID) {
@@ -3337,7 +4553,18 @@ public class Global {
                 + "a.as_at_date = (SELECT MAX  (as_at_date) FROM accb.accb_accnt_daily_bals d "
                 + "where d.accnt_id = a.accnt_id)";
         //  and b.is_retained_earnings!='1'
-        return Global.selectDataNoParams(selSQL);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(selSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return dtst;
     }
 
     public static boolean hsTrnsUptdAcntCurrBls(long actrnsid,
@@ -3359,6 +4586,8 @@ public class Global {
         } catch (ParseException ex) {
             return false;
         } catch (SQLException ex) {
+            return false;
+        } catch (Exception ex) {
             return false;
         }
     }
@@ -3382,6 +4611,8 @@ public class Global {
                     + " WHERE accnt_id = " + accntid;
             Global.updateDataNoParams(updtSQL);
         } catch (ParseException ex) {
+        } catch (SQLException ex) {
+        } catch (Exception ex) {
         }
     }
 
@@ -3403,6 +4634,8 @@ public class Global {
                     + "', " + Global.rnUser_ID + ", '" + dateStr + "', ',')";
             Global.insertDataNoParams(insSQL);
         } catch (ParseException ex) {
+        } catch (SQLException ex) {
+        } catch (Exception ex) {
         }
     }
 
@@ -3423,6 +4656,8 @@ public class Global {
                     + "', " + Global.rnUser_ID + ", '" + dateStr + "', ',', " + currID + ")";
             Global.insertDataNoParams(insSQL);
         } catch (ParseException ex) {
+        } catch (SQLException ex) {
+        } catch (Exception ex) {
         }
     }
 
@@ -3487,6 +4722,8 @@ public class Global {
             }
             Global.updateDataNoParams(updtSQL);
         } catch (ParseException ex) {
+        } catch (SQLException ex) {
+        } catch (Exception ex) {
         }
     }
 
@@ -3586,6 +4823,8 @@ public class Global {
             }
             Global.updateDataNoParams(updtSQL);
         } catch (ParseException ex) {
+        } catch (SQLException ex) {
+        } catch (Exception ex) {
         }
     }
 
@@ -3640,6 +4879,8 @@ public class Global {
             return 0.00;
         } catch (SQLException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3654,6 +4895,8 @@ public class Global {
             }
             return 0.00;
         } catch (SQLException ex) {
+            return 0.00;
+        } catch (Exception ex) {
             return 0.00;
         }
     }
@@ -3671,6 +4914,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -3695,6 +4940,8 @@ public class Global {
         } catch (SQLException ex) {
             return 0.00;
         } catch (ParseException ex) {
+            return 0.00;
+        } catch (Exception ex) {
             return 0.00;
         }
     }
@@ -3728,6 +4975,8 @@ public class Global {
             return rslt;
         } catch (ParseException ex) {
             return rslt;
+        } catch (Exception ex) {
+            return rslt;
         }
     }
 
@@ -3752,6 +5001,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3774,6 +5025,8 @@ public class Global {
         } catch (SQLException ex) {
             return -1;
         } catch (ParseException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -3800,6 +5053,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3823,6 +5078,8 @@ public class Global {
         } catch (SQLException ex) {
             return 0.00;
         } catch (ParseException ex) {
+            return 0.00;
+        } catch (Exception ex) {
             return 0.00;
         }
     }
@@ -3848,6 +5105,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3870,6 +5129,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3889,7 +5150,17 @@ public class Global {
                 + "SELECT SUM(debit_balance), SUM(credit_balance), SUM(net_balance) "
                 + "FROM subaccnt "
                 + "WHERE accnt_num ilike '%'";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -3912,6 +5183,8 @@ public class Global {
         } catch (SQLException ex) {
             return -1;
         } catch (ParseException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -3938,6 +5211,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -3961,6 +5236,8 @@ public class Global {
         } catch (SQLException ex) {
             return 0.00;
         } catch (ParseException ex) {
+            return 0.00;
+        } catch (Exception ex) {
             return 0.00;
         }
     }
@@ -3986,6 +5263,8 @@ public class Global {
             return 0.00;
         } catch (ParseException ex) {
             return 0.00;
+        } catch (Exception ex) {
+            return 0.00;
         }
     }
 
@@ -4010,6 +5289,8 @@ public class Global {
             return -1;
         } catch (ParseException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -4026,7 +5307,17 @@ public class Global {
                 + "where g.accnt_id = h.accnt_id and g.crncy_id = " + CurrID
                 + " and h.prnt_accnt_id = " + prntAccntID + " and g.as_at_date = tbl1.dte1 "
                 + "and g.accnt_id = tbl1.accnt1";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -4043,7 +5334,17 @@ public class Global {
                 + "GROUP BY a.accnt_id) tbl1 where g.accnt_id = h.accnt_id and g.crncy_id = " + CurrID
                 + " and h.control_account_id = " + cntrlAccntID + " and g.as_at_date = tbl1.dte1 "
                 + "and g.accnt_id = tbl1.accnt1";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -4054,7 +5355,17 @@ public class Global {
                 + "from accb.accb_accnt_crncy_daily_bals a where a.accnt_id = " + accntID
                 + " and to_timestamp(a.as_at_date,'YYYY-MM-DD') <= to_timestamp('" + dtestr.substring(0, 10) + "','YYYY-MM-DD') "
                 + "ORDER BY to_timestamp(a.as_at_date,'YYYY-MM-DD') DESC LIMIT 1 OFFSET 0";
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -4074,6 +5385,8 @@ public class Global {
             }
             return sumRes;
         } catch (SQLException ex) {
+            return sumRes;
+        } catch (Exception ex) {
             return sumRes;
         }
     }
@@ -4097,26 +5410,46 @@ public class Global {
             return sumRes;
         } catch (SQLException ex) {
             return sumRes;
+        } catch (Exception ex) {
+            return sumRes;
         }
     }
 
     public static void chngeTrnsStatus(long trnsid, String status) {
-        String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE accb.accb_trnsctn_details "
-                + "SET last_update_by = " + Global.rnUser_ID + ", last_update_date = '" + dateStr
-                + "', trns_status = '" + status + "'"
-                + " WHERE transctn_id = " + trnsid;
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String updtSQL = "UPDATE accb.accb_trnsctn_details "
+                    + "SET last_update_by = " + Global.rnUser_ID + ", last_update_date = '" + dateStr
+                    + "', trns_status = '" + status + "'"
+                    + " WHERE transctn_id = " + trnsid;
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void changeReconciledStatus(long trnsID, String nwStatus) {
         if (trnsID <= 0) {
             return;
         }
-        //Global.Extra_Adt_Trl_Info = "";
-        String updtSQL = "UPDATE accb.accb_trnsctn_details SET is_reconciled = '"
-                + nwStatus.replace("'", "''") + "' WHERE transctn_id=" + trnsID + " or src_trns_id_reconciled = " + trnsID;
-        Global.updateDataNoParams(updtSQL);
+        try {
+            //Global.Extra_Adt_Trl_Info = "";
+            String updtSQL = "UPDATE accb.accb_trnsctn_details SET is_reconciled = '"
+                    + nwStatus.replace("'", "''") + "' WHERE transctn_id=" + trnsID + " or src_trns_id_reconciled = " + trnsID;
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static String incrsOrDcrsAccnt(int accntid, String dbtOrCrdt) {
@@ -4207,6 +5540,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -4221,6 +5556,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -4237,6 +5574,8 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
@@ -4251,6 +5590,8 @@ public class Global {
             }
             return "";
         } catch (SQLException ex) {
+            return "";
+        } catch (Exception ex) {
             return "";
         }
     }
@@ -4267,20 +5608,31 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
     public static void createTodaysGLBatch(int orgid, String batchnm,
             String batchdesc, String batchsource) {
-        String dateStr = Global.getDB_Date_time();
-        String insSQL = "INSERT INTO accb.accb_trnsctn_batches("
-                + "batch_name, batch_description, created_by, creation_date, "
-                + "org_id, batch_status, last_update_by, last_update_date, batch_source) "
-                + "VALUES ('" + batchnm.replace("'", "''") + "', '" + batchdesc.replace("'", "''")
-                + "', " + Global.rnUser_ID + ", '" + dateStr + "', " + orgid + ", '0', "
-                + Global.rnUser_ID + ", '" + dateStr + "', '"
-                + batchsource.replace("'", "''") + "')";
-        Global.insertDataNoParams(insSQL);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String insSQL = "INSERT INTO accb.accb_trnsctn_batches("
+                    + "batch_name, batch_description, created_by, creation_date, "
+                    + "org_id, batch_status, last_update_by, last_update_date, batch_source, avlbl_for_postng) "
+                    + "VALUES ('" + batchnm.replace("'", "''") + "', '" + batchdesc.replace("'", "''")
+                    + "', " + Global.rnUser_ID + ", '" + dateStr + "', " + orgid + ", '0', "
+                    + Global.rnUser_ID + ", '" + dateStr + "', '"
+                    + batchsource.replace("'", "''") + "','0')";
+            Global.insertDataNoParams(insSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static int get_Suspns_Accnt(int orgid) {
@@ -4295,6 +5647,8 @@ public class Global {
             return -1;
         } catch (SQLException ex) {
             return -1;
+        } catch (Exception ex) {
+            return -1;
         }
     }
 
@@ -4307,7 +5661,6 @@ public class Global {
             SimpleDateFormat frmtr = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
             SimpleDateFormat frmtr1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             trnsDate = frmtr1.format(frmtr.parse(trnsDate));
-
             if (trnsDesc.length() > 500) {
                 trnsDesc = trnsDesc.substring(0, 500);
             }
@@ -4326,8 +5679,13 @@ public class Global {
                     + ", " + acntCurrID + ", " + funcExchRate
                     + ", " + acntExchRate + ", '" + dbtOrCrdt + "')";
             Global.insertDataNoParams(insSQL);
+
         } catch (ParseException ex) {
-            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -4344,17 +5702,37 @@ public class Global {
             return "";
         } catch (SQLException ex) {
             return "";
+        } catch (Exception ex) {
+            return "";
         }
     }
 
     public static void deleteBatch(long batchid, String batchNm) {
-        String delSql = "DELETE FROM accb.accb_trnsctn_batches WHERE(batch_id = " + batchid + ")";
-        Global.deleteDataNoParams(delSql);
+        try {
+            String delSql = "DELETE FROM accb.accb_trnsctn_batches WHERE(batch_id = " + batchid + ")";
+            Global.deleteDataNoParams(delSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void deleteBatchTrns(long batchid) {
-        String delSql = "DELETE FROM accb.accb_trnsctn_details WHERE(batch_id = " + batchid + ")";
-        Global.deleteDataNoParams(delSql);
+        try {
+            String delSql = "DELETE FROM accb.accb_trnsctn_details WHERE(batch_id = " + batchid + ")";
+            Global.deleteDataNoParams(delSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static String getGLIntrfcIDs(int accntid, String trns_date, int crncy_id, String tblNme) {
@@ -4376,6 +5754,8 @@ public class Global {
             return infc_ids;
         } catch (ParseException ex) {
             return infc_ids;
+        } catch (Exception ex) {
+            return infc_ids;
         }
     }
 
@@ -4392,6 +5772,8 @@ public class Global {
             }
             return res;
         } catch (SQLException ex) {
+            return res;
+        } catch (Exception ex) {
             return res;
         }
     }
@@ -4429,6 +5811,8 @@ public class Global {
             }
         } catch (SQLException ex) {
             return 1;
+        } catch (Exception ex) {
+            return 1;
         }
     }
 
@@ -4461,51 +5845,83 @@ public class Global {
                     + ", " + acntCurrID + ", " + funcExchRate
                     + ", " + acntExchRate + ", '" + dbtOrCrdt + "')";
             Global.insertDataNoParams(insSQL);
+
         } catch (ParseException ex) {
-            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     public static void updtGLIntrfcLnSpclOrg(int orgID, String tblNme, String btchPrfx) {
         //Used to update batch ids of interface lines that have gone to GL already
         String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE " + tblNme + " a "
-                + "SET gl_batch_id = (select f.batch_id from accb.accb_trnsctn_details f, accb.accb_chart_of_accnts h "
-                + "where f.batch_id IN (select g.batch_id from accb.accb_trnsctn_batches g "
-                + "where g.batch_name ilike '%" + btchPrfx.replace(" ", "%") + "%' and "
-                + "to_timestamp(g.creation_date,'YYYY-MM-DD HH24:MI:SS') between "
-                + "(to_timestamp(a.trnsctn_date,'YYYY-MM-DD HH24:MI:SS') - interval '6 months') "
-                + "and (to_timestamp(a.trnsctn_date,'YYYY-MM-DD HH24:MI:SS') + interval '6 months')) and "
-                + "f.source_trns_ids like '%,' || a.interface_id || ',%' and "
-                + "f.trnsctn_date=a.trnsctn_date and f.accnt_id= a.accnt_id and f.accnt_id= h.accnt_id and h.org_id = " + orgID + ")"
-                + ", last_update_by=" + Global.rnUser_ID + ", "
-                + "last_update_date='" + dateStr + "' "
-                + "WHERE a.gl_batch_id = -1 and EXISTS(select 1 from accb.accb_chart_of_accnts"
-                + " m where a.accnt_id= m.accnt_id and m.org_id =" + orgID + ")";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE " + tblNme + " a "
+                    + "SET gl_batch_id = (select f.batch_id from accb.accb_trnsctn_details f, accb.accb_chart_of_accnts h "
+                    + "where f.batch_id IN (select g.batch_id from accb.accb_trnsctn_batches g "
+                    + "where g.batch_name ilike '%" + btchPrfx.replace(" ", "%") + "%' and "
+                    + "to_timestamp(g.creation_date,'YYYY-MM-DD HH24:MI:SS') between "
+                    + "(to_timestamp(a.trnsctn_date,'YYYY-MM-DD HH24:MI:SS') - interval '6 months') "
+                    + "and (to_timestamp(a.trnsctn_date,'YYYY-MM-DD HH24:MI:SS') + interval '6 months')) and "
+                    + "f.source_trns_ids like '%,' || a.interface_id || ',%' and "
+                    + "f.trnsctn_date=a.trnsctn_date and f.accnt_id= a.accnt_id and f.accnt_id= h.accnt_id and h.org_id = " + orgID + ")"
+                    + ", last_update_by=" + Global.rnUser_ID + ", "
+                    + "last_update_date='" + dateStr + "' "
+                    + "WHERE a.gl_batch_id = -1 and EXISTS(select 1 from accb.accb_chart_of_accnts"
+                    + " m where a.accnt_id= m.accnt_id and m.org_id =" + orgID + ")";
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updtPymntAllGLIntrfcLnOrg(long glbatchid, int orgID, String tblNme) {
         String dateStr = Global.getDB_Date_time();
-        String updtSQL = "UPDATE " + tblNme + " a "
-                + "SET gl_batch_id = " + glbatchid
-                + ", last_update_by=" + Global.rnUser_ID + ", "
-                + "last_update_date='" + dateStr + "' "
-                + "WHERE a.gl_batch_id = -1 and EXISTS(select f.transctn_id "
-                + "from accb.accb_trnsctn_details f, accb.accb_chart_of_accnts g "
-                + "where f.batch_id = " + glbatchid + " "
-                + "and f.source_trns_ids like '%,' || a.interface_id || ',%' and "
-                + "f.trnsctn_date=a.trnsctn_date and f.accnt_id= a.accnt_id and f.accnt_id= g.accnt_id and g.org_id = " + orgID + ") ";
-        Global.updateDataNoParams(updtSQL);
+        try {
+            String updtSQL = "UPDATE " + tblNme + " a "
+                    + "SET gl_batch_id = " + glbatchid
+                    + ", last_update_by=" + Global.rnUser_ID + ", "
+                    + "last_update_date='" + dateStr + "' "
+                    + "WHERE a.gl_batch_id = -1 and EXISTS(select f.transctn_id "
+                    + "from accb.accb_trnsctn_details f, accb.accb_chart_of_accnts g "
+                    + "where f.batch_id = " + glbatchid + " "
+                    + "and f.source_trns_ids like '%,' || a.interface_id || ',%' and "
+                    + "f.trnsctn_date=a.trnsctn_date and f.accnt_id= a.accnt_id and f.accnt_id= g.accnt_id and g.org_id = " + orgID + ") ";
+            Global.updateDataNoParams(updtSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updtTodaysGLBatchPstngAvlblty(long batchid, String avlblty) {
         String dateStr = Global.getDB_Date_time();
-        String insSQL = "UPDATE accb.accb_trnsctn_batches SET avlbl_for_postng='" + avlblty
-                + "', last_update_by=" + Global.rnUser_ID
-                + ", last_update_date='" + dateStr
-                + "' WHERE batch_id = " + batchid;
-        Global.updateDataNoParams(insSQL);
+        try {
+            String insSQL = "UPDATE accb.accb_trnsctn_batches SET avlbl_for_postng='" + avlblty
+                    + "', last_update_by=" + Global.rnUser_ID
+                    + ", last_update_date='" + dateStr
+                    + "' WHERE batch_id = " + batchid;
+            Global.updateDataNoParams(insSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void createRate(String rate_dte, String curFrom,
@@ -4530,36 +5946,58 @@ public class Global {
                     + "', " + Global.rnUser_ID + ", '" + dateStr
                     + "')";
             Global.insertDataNoParams(insSQL);
+
         } catch (ParseException ex) {
-            Logger.getLogger(Global.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     public static void updtRate(long rateID, String rate_dte, String curFrom,
             int curFrmID, String curTo, int curToID, double scalefactor) {
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String insSQL = "UPDATE accb.accb_exchange_rates SET "
+                    + "conversion_date ='" + rate_dte.replace("'", " ''")
+                    + "', currency_from='" + curFrom.replace("'", "''")
+                    + "', currency_from_id=" + curFrmID
+                    + ", last_update_by=" + Global.rnUser_ID + ", last_update_date='" + dateStr
+                    + "', currency_to='" + curTo.replace("'", "''")
+                    + "', currency_to_id=" + curToID
+                    + ", multiply_from_by = " + scalefactor
+                    + " WHERE rate_id = " + rateID;
+            Global.updateDataNoParams(insSQL);
 
-        String dateStr = Global.getDB_Date_time();
-        String insSQL = "UPDATE accb.accb_exchange_rates SET "
-                + "conversion_date ='" + rate_dte.replace("'", " ''")
-                + "', currency_from='" + curFrom.replace("'", "''")
-                + "', currency_from_id=" + curFrmID
-                + ", last_update_by=" + Global.rnUser_ID + ", last_update_date='" + dateStr
-                + "', currency_to='" + curTo.replace("'", "''")
-                + "', currency_to_id=" + curToID
-                + ", multiply_from_by = " + scalefactor
-                + " WHERE rate_id = " + rateID;
-        Global.updateDataNoParams(insSQL);
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static void updtRateValue(long rateID, double scalefactor) {
         //Global.Extra_Adt_Trl_Info = "";
-        String dateStr = Global.getDB_Date_time();
-        String insSQL = "UPDATE accb.accb_exchange_rates SET "
-                + "last_update_by =" + Global.rnUser_ID
-                + ", last_update_date='" + dateStr
-                + "', multiply_from_by = " + scalefactor
-                + " WHERE rate_id = " + rateID;
-        Global.updateDataNoParams(insSQL);
+        try {
+            String dateStr = Global.getDB_Date_time();
+            String insSQL = "UPDATE accb.accb_exchange_rates SET "
+                    + "last_update_by =" + Global.rnUser_ID
+                    + ", last_update_date='" + dateStr
+                    + "', multiply_from_by = " + scalefactor
+                    + " WHERE rate_id = " + rateID;
+            Global.updateDataNoParams(insSQL);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static ResultSet get_Currencies(String funcCurCode) {
@@ -4567,7 +6005,17 @@ public class Global {
                 + ", allowed_org_ids FROM gst.gen_stp_lov_values WHERE pssbl_value != '"
                 + funcCurCode.replace("'", "''") + "' and is_enabled='1' and value_list_id=" + Global.getLovID("Currencies");
 
-        ResultSet dtst = Global.selectDataNoParams(strSql);
+        ResultSet dtst = null;
+        try {
+            dtst = Global.selectDataNoParams(strSql);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Global.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
         return dtst;
     }
 
@@ -4583,6 +6031,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -4602,6 +6052,8 @@ public class Global {
             }
             return -1;
         } catch (SQLException ex) {
+            return -1;
+        } catch (Exception ex) {
             return -1;
         }
     }
@@ -4885,7 +6337,6 @@ public class Global {
             Global.strSB.append("</tbody></table>").append(System.getProperty("line.separator"));
             if (islast) {
                 Global.strSB.append("</body></html>");
-
                 File file = new File(fileNm);
                 // if file doesnt exists, then create it
                 if (!file.exists()) {
@@ -4901,8 +6352,8 @@ public class Global {
                 }
             }
         } catch (Exception ex) {
-            System.out.println(ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n");
-            Global.errorLog += ex.getMessage() + "\r\n\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n\r\n";
+            System.out.println(ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n");
+            Global.errorLog += ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
             Global.writeToLog();
         }
     }
@@ -5214,7 +6665,7 @@ public class Global {
                         + orgNm + "<br/>" + pstl + "<br/>" + cntcts + "<br/>" + email + "<br/>" + "</p>");
             }
 
-            Global.strSB.append("<script type = \"text / javascript\"> " + System.getProperty("line.separator")
+            Global.strSB.append("<script type=\"text/javascript\"> " + System.getProperty("line.separator")
                     + "var chart;" + System.getProperty("line.separator")
                     + "var chartData = [");
 
@@ -5278,7 +6729,7 @@ public class Global {
                 }
                 FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
                 BufferedWriter bw = new BufferedWriter(fw);
-                bw.write(Global.strSB.length());
+                bw.write(Global.strSB.toString());
                 bw.close();
 
                 if (Global.callngAppType.equals("DESKTOP")) {
@@ -5322,7 +6773,7 @@ public class Global {
 
                 Global.strSB.append("<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">")
                         .append(System.getProperty("line.separator"))
-                        .append("<script src = \"../amcharts / amcharts.js\" type = \"text / javascript\"></script > ")
+                        .append("<script src=\"../amcharts/amcharts.js\" type=\"text/javascript\"></script>")
                         .append(System.getProperty("line.separator"));
 
                 Global.strSB.append("</head><body>")
@@ -5448,7 +6899,7 @@ public class Global {
                         .append(System.getProperty("line.separator"));
                 Global.strSB.append("<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">")
                         .append(System.getProperty("line.separator"))
-                        .append("<script src = \"../amcharts / amcharts.js\" type = \"text / javascript\">")
+                        .append("<script src=\"../amcharts/amcharts.js\" type=\"text/javascript\">")
                         .append(System.getProperty("line.separator"))
                         .append("</script>")
                         .append(System.getProperty("line.separator"));
@@ -5529,7 +6980,9 @@ public class Global {
                     .append(System.getProperty("line.separator"))
                     .append("//categoryAxis.minPeriod = DD; // our data is ctgryly, so we set minPeriod to YYYY")
                     .append(System.getProperty("line.separator"))
-                    .append("categoryAxis.title = \"" + dtstmd.getColumnName(Integer.parseInt(colsToUse[0]) + 1) + "\";")
+                    .append("categoryAxis.title = \"")
+                    .append(dtstmd.getColumnName(Integer.parseInt(colsToUse[0]) + 1))
+                    .append("\";")
                     .append(System.getProperty("line.separator"))
                     .append("categoryAxis.gridAlpha = 0.5;")
                     .append(System.getProperty("line.separator"))
@@ -5613,10 +7066,9 @@ public class Global {
                     .append("</script>")
                     .append(System.getProperty("line.separator"));
             Global.strSB.append("<h2>" + rptTitle + "</h2>").append(System.getProperty("line.separator"));
-            Global.strSB.append("<div id=\"chartdiv\" style=\"width: " + colsToGrp[0] + "px; height: " + colsToGrp[1] + "px;\"></div>").append(System.getProperty("line.separator"));
+            Global.strSB.append("<div id=\"chartdiv\" style=\"width: ").append(colsToGrp[0]).append("px; height: ").append(colsToGrp[1]).append("px;\"></div>").append(System.getProperty("line.separator"));
             if (islast) {
                 Global.strSB.append("</body></html>");
-
                 File file = new File(fileNm);
                 // if file doesnt exists, then create it
                 if (!file.exists()) {

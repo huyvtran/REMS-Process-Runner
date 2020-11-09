@@ -24,22 +24,36 @@ public class RqstLstnrUpdtrfunc extends Thread {
     @Override
     public void run() {
         try {
+            System.out.println("Running " + threadName);
             long prgmID = Global.getGnrlRecID("rpt.rpt_prcss_rnnrs", "rnnr_name", "prcss_rnnr_id", Program.runnerName);
             Global.errorLog = "Successfully Started Thread One\r\nProgram ID:" + prgmID + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             do {
                 Program.updatePrgrm(prgmID);
                 Global.minimizeMemory();
                 Thread.sleep(15000);
             } while (true);
-        } catch (Exception ex) {
+        } catch (InterruptedException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread1.isAlive()) {
                 Program.thread1.interrupt();
             }
+            Program.killThreads();
+        } catch (Exception ex) {
+            //write to log file
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
+            Global.writeToLog();
+            if (Program.thread1.isAlive()) {
+                Program.thread1.interrupt();
+            }
+            Program.killThreads();
         } finally {
+            Program.killThreads();
         }
     }
 

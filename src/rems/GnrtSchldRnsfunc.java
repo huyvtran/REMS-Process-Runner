@@ -35,6 +35,7 @@ public class GnrtSchldRnsfunc extends Thread {
                 //2. for each enabled schedule check last time it was run
                 // if difference between last_time_active is >= schedule interval 
                 //and time component is >= current time then generate another schedule run
+                System.out.println("Inside GnrtSchldRnsfunc ");
                 Program.checkNClosePrgrm();
                 ResultSet dtst = Global.get_Schdules();
                 dtst.last();
@@ -55,7 +56,7 @@ public class GnrtSchldRnsfunc extends Thread {
                         bdte2.setTime(frmtr1.parse(dateStr));
                         bdte2.add(Calendar.MINUTE, -1);
                         bdte2.add(Calendar.SECOND, -59);
-                        dateStr = frmtr1.format(bdte2);
+                        dateStr = frmtr1.format(bdte2.getTime());
 
                         String outputUsd = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "output_type", rpt_id);
                         String orntnUsd = Global.getGnrlRecNm("rpt.rpt_reports", "report_id", "portrait_lndscp", rpt_id);
@@ -129,7 +130,8 @@ public class GnrtSchldRnsfunc extends Thread {
                 do {
                     mxConns = Global.getMxAllwdDBConns();
                     curCons = Global.getCurDBConns();
-                    Global.errorLog = "Inside Generation of Scheduled Requests=> Current Connections: " + curCons + " Max Connections: " + mxConns;
+                    Global.errorLog = "Inside Generation of Scheduled Report/Process Requests=> Current Connections: " + curCons + " Max Connections: " + mxConns+ System.getProperty("line.separator");
+                    System.out.println(Global.errorLog);
                     Global.writeToLog();
 
                     Thread.sleep(30000);
@@ -140,6 +142,7 @@ public class GnrtSchldRnsfunc extends Thread {
         } catch (SQLException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread2.isAlive()) {
                 Program.thread2.interrupt();
@@ -147,6 +150,7 @@ public class GnrtSchldRnsfunc extends Thread {
         } catch (NumberFormatException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread2.isAlive()) {
                 Program.thread2.interrupt();
@@ -154,6 +158,7 @@ public class GnrtSchldRnsfunc extends Thread {
         } catch (ParseException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread2.isAlive()) {
                 Program.thread2.interrupt();
@@ -161,6 +166,15 @@ public class GnrtSchldRnsfunc extends Thread {
         } catch (InterruptedException ex) {
             //write to log file
             Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
+            Global.writeToLog();
+            if (Program.thread2.isAlive()) {
+                Program.thread2.interrupt();
+            }
+        } catch (Exception ex) {
+            //write to log file
+            Global.errorLog = ex.getMessage() + "\r\n" + Arrays.toString(ex.getStackTrace()) + "\r\n";
+            System.out.println(Global.errorLog);
             Global.writeToLog();
             if (Program.thread2.isAlive()) {
                 Program.thread2.interrupt();
